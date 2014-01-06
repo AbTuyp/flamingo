@@ -44,4 +44,7 @@
         /-->
   </Realm>
   <Parameter name="componentregistry.path" value="/viewer-html/components,/opt/flamingo_3rdparty/ro-tercera-component" override="false"/>
+  <Parameter name="flamingo.solr.url" value="http://webkaart.b3p.nl/solr/" override="false"/>
+  <Parameter name="flamingo.solr.setup" value="false" override="false"/>
+  <Parameter name="flamingo.data.dir" value="/opt/flamingo_data" override="false"/>
 </Context>
