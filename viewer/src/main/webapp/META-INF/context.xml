@@ -43,4 +43,5 @@
             commonRole="ExtendedUser"
         /-->
   </Realm>
+  <Parameter name="componentregistry.path" value="/viewer-html/components,/opt/flamingo_3rdparty/ro-tercera-component" override="false"/>
 </Context>
