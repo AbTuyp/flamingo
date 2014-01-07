@@ -74,10 +74,6 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                     <fo:block-container width="20.8cm" height="2.3cm" top="18.9cm" left="0cm" xsl:use-attribute-sets="column-block">
                         <xsl:call-template name="disclaimer-block"/>
                     </fo:block-container>
-
-                    <!--fo:block-container width="7.6cm" height="2.3cm" top="17.9cm" left="20.8cm" xsl:use-attribute-sets="column-block">
-                        <xsl:call-template name="logo-block"/>
-                    </fo:block-container-->
                 </fo:flow>
             </fo:page-sequence>
         </fo:root>
@@ -93,7 +89,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     <xsl:template name="info-block">
         
             <fo:block>
-                <fo:external-graphic src="url('prov_utrecht_rgb.jpg')" width="231px" height="56px"  content-height="scale-to-fit" content-width="scale-to-fit" scaling="uniform"/>
+                <fo:external-graphic src="url('prov_utrecht_rgb.jpg')" width="220px" height="56px"  content-height="scale-to-fit" content-width="scale-to-fit" scaling="uniform"/>
             </fo:block>
                
             <fo:block margin-left="0.2cm" margin-top="0cm" xsl:use-attribute-sets="default-font">

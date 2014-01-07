@@ -62,11 +62,11 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                         </fo:block>
                     </fo:block-container>
 
-                    <fo:block-container width="6.6cm" height="24.9cm" top="2.35cm" left="0cm" xsl:use-attribute-sets="column-block">
+                    <fo:block-container width="6.6cm" height="24.9cm" top="2.35cm" left="34.4cm" xsl:use-attribute-sets="column-block">
                         <xsl:call-template name="info-block"/>
                     </fo:block-container>
 
-                    <fo:block-container width="34.4cm" height="24.9cm" top="1.6cm" left="6.7cm" xsl:use-attribute-sets="column-block-border">
+                    <fo:block-container width="34.4cm" height="24.9cm" top="2.35cm" left="0cm" xsl:use-attribute-sets="column-block-border">
                         <xsl:call-template name="map-block"/>
                     </fo:block-container>
 
@@ -74,9 +74,6 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                         <xsl:call-template name="disclaimer-block"/>
                     </fo:block-container>
 
-                    <fo:block-container width="7.6cm" height="2.3cm" top="27.0cm" left="33.0cm" xsl:use-attribute-sets="column-block">
-                        <xsl:call-template name="logo-block"/>
-                    </fo:block-container>
                 </fo:flow>
             </fo:page-sequence>
         </fo:root>
@@ -90,13 +87,13 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     </xsl:template>
     
     <xsl:template name="info-block">
-        <xsl:call-template name="windrose">
-            <xsl:with-param name="angle" select="angle"/>
-            <xsl:with-param name="top" select="'0cm'"/>
-        </xsl:call-template>
-        
-        <fo:block margin-left="0.2cm" margin-top="4cm" xsl:use-attribute-sets="default-font">            
+      
+        <fo:block>
+            <fo:external-graphic src="url('prov_utrecht_rgb.jpg')" width="220px" height="56px"  content-height="scale-to-fit" content-width="scale-to-fit" scaling="uniform"/>
+        </fo:block>
+        <fo:block margin-left="0.2cm" margin-top="0cm" xsl:use-attribute-sets="default-font">            
 
+            <xsl:call-template name="legend"/>
             <fo:block margin-left="0.2cm" margin-top="0.5cm" font-size="9pt">
                 schaal
             </fo:block>
@@ -116,13 +113,6 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
             <fo:block margin-left="0.2cm" margin-top="0.5cm" font-size="10pt">
                 <xsl:value-of select="date"/>
             </fo:block>
-
-            <fo:block margin-left="0.2cm" margin-top="0.1cm" font-size="10pt">
-                U bekijkt een demo ontwerp.
-            </fo:block>
-            
-            <fo:block space-before="0.4cm"/>
-            <xsl:call-template name="legend"/>
             
             <fo:block margin-left="0.2cm" margin-top="0.3cm" font-size="8pt" font-style="italic">
                 <xsl:value-of select="remark"/>
