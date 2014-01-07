@@ -63,21 +63,21 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                         </fo:block>
                     </fo:block-container>
 
-                    <fo:block-container width="6.6cm" height="15.4cm" top="2.35cm" left="0cm" xsl:use-attribute-sets="column-block">
+                    <fo:block-container width="6.6cm" height="15.4cm" top="2.35cm" left="21.7cm" xsl:use-attribute-sets="column-block">
                         <xsl:call-template name="info-block"/>
                     </fo:block-container>
 
-                    <fo:block-container width="21.7cm" height="16.2cm" top="1.6cm" left="6.7cm" xsl:use-attribute-sets="column-block-border">
+                    <fo:block-container width="21.7cm" height="16.2cm" top="2.6cm" left="0m" xsl:use-attribute-sets="column-block-border">
                         <xsl:call-template name="map-block"/>
                     </fo:block-container>
 
-                    <fo:block-container width="20.8cm" height="2.3cm" top="17.9cm" left="0cm" xsl:use-attribute-sets="column-block">
+                    <fo:block-container width="20.8cm" height="2.3cm" top="18.9cm" left="0cm" xsl:use-attribute-sets="column-block">
                         <xsl:call-template name="disclaimer-block"/>
                     </fo:block-container>
 
-                    <fo:block-container width="7.6cm" height="2.3cm" top="17.9cm" left="20.8cm" xsl:use-attribute-sets="column-block">
+                    <!--fo:block-container width="7.6cm" height="2.3cm" top="17.9cm" left="20.8cm" xsl:use-attribute-sets="column-block">
                         <xsl:call-template name="logo-block"/>
-                    </fo:block-container>
+                    </fo:block-container-->
                 </fo:flow>
             </fo:page-sequence>
         </fo:root>
@@ -89,46 +89,40 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
             <xsl:value-of select="title"/>
         </fo:block>
     </xsl:template>
-    
+   
     <xsl:template name="info-block">
-        <xsl:call-template name="windrose">
-            <xsl:with-param name="angle" select="angle"/>
-            <xsl:with-param name="top" select="'0cm'"/>
-        </xsl:call-template>   
-
-		<fo:block margin-left="0.2cm" margin-top="4cm" xsl:use-attribute-sets="default-font">
-            
-            <fo:block margin-left="0.2cm" margin-top="0.5cm" font-size="9pt">
-                schaal
+        
+            <fo:block>
+                <fo:external-graphic src="url('prov_utrecht_rgb.jpg')" width="231px" height="56px"  content-height="scale-to-fit" content-width="scale-to-fit" scaling="uniform"/>
             </fo:block>
+               
+            <fo:block margin-left="0.2cm" margin-top="0cm" xsl:use-attribute-sets="default-font">
+                 
+                <xsl:call-template name="legend"/>
+                <fo:block margin-left="0.2cm" margin-top="0.5cm" font-size="9pt">
+                    schaal
+                </fo:block>
 
-            <!-- create scalebar -->
-            <fo:block margin-left="0.2cm" margin-top="0.2cm">
-                <xsl:call-template name="calc-scale">
-                    <xsl:with-param name="m-width">
-                        <xsl:call-template name="calc-bbox-width-m-corrected">
-                            <xsl:with-param name="bbox" select="bbox"/>
-                        </xsl:call-template>
-                    </xsl:with-param>
-                    <xsl:with-param name="px-width" select="$map-width-px"/>
-                </xsl:call-template>
-            </fo:block>
+                <!-- create scalebar -->
+                <fo:block margin-left="0.2cm" margin-top="0.2cm">
+                    <xsl:call-template name="calc-scale">
+                        <xsl:with-param name="m-width">
+                            <xsl:call-template name="calc-bbox-width-m-corrected">
+                                <xsl:with-param name="bbox" select="bbox"/>
+                            </xsl:call-template>
+                        </xsl:with-param>
+                        <xsl:with-param name="px-width" select="$map-width-px"/>
+                    </xsl:call-template>
+                </fo:block>
 
-            <fo:block margin-left="0.2cm" margin-top="0.5cm" font-size="10pt">
-                <xsl:value-of select="date"/>
-            </fo:block>
+                <fo:block margin-left="0.2cm" margin-top="0.5cm" font-size="10pt">
+                    <xsl:value-of select="date"/>
+                </fo:block>
 
-            <fo:block margin-left="0.2cm" margin-top="0.1cm" font-size="10pt">
-                U bekijkt een demo ontwerp.
-            </fo:block>
-            
-            <fo:block space-before="0.4cm"/>            
-            <xsl:call-template name="legend"/>
-            
-            <fo:block margin-left="0.2cm" margin-top="0.3cm" font-size="8pt" font-style="italic">
-                <xsl:value-of select="remark"/>
-            </fo:block>
-
+                <fo:block margin-left="0.2cm" margin-top="0.3cm" font-size="8pt" font-style="italic">
+                    <xsl:value-of select="remark"/>
+                </fo:block>
+                
         </fo:block>
     </xsl:template>
 
@@ -164,10 +158,5 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
             Aan deze kaart kunnen geen rechten worden ontleend.
         </fo:block>
     </xsl:template>
-
-    <xsl:template name="logo-block">
-        <fo:block>
-            <fo:external-graphic src="url('b3p_logo.png')" width="231px" height="56px"/>
-        </fo:block>
-    </xsl:template>    
+  
 </xsl:stylesheet>
