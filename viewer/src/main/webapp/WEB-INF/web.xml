@@ -49,7 +49,14 @@
         <param-name>flamingo.solr.url</param-name>
         <param-value>http://webkaart.b3p.nl/solr/</param-value>
     </context-param>
-
+     <context-param>
+        <description>
+            The path where components.json are to be found
+        </description>
+        <param-name>componentregistry.path</param-name>
+        <param-value>/viewer-html/components,/opt/flamingo_3rdparty/ro-tercera-component</param-value>
+    </context-param>
+ 
     <filter>
         <description>Filter from Tomcat 6 distribution, see http://wiki.apache.org/tomcat/FAQ/CharacterEncoding</description>
         <filter-name>SetCharacterEncodingFilter</filter-name>
