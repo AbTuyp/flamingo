@@ -77,9 +77,6 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                         <xsl:call-template name="map-block"/>
                     </fo:block-container>
 
-                    <fo:block-container width="20.8cm" height="2.3cm" top="18.9cm" left="0cm" xsl:use-attribute-sets="column-block">
-                        <xsl:call-template name="disclaimer-block"/>
-                    </fo:block-container>
                 </fo:flow>
             </fo:page-sequence>
         </fo:root>
