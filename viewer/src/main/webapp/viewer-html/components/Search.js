@@ -315,7 +315,7 @@ Ext.define ("viewer.components.Search",{
                 this.simpleListSearch(searchText);
             }else{
                 var me = this;
-                me.mainContainer.setLoading({
+                Ext.getCmp(this.name + 'ContentPanel').setLoading({
                     msg: 'Bezig met zoeken'
                 });
                 Ext.Ajax.request({ 
@@ -333,12 +333,12 @@ Ext.define ("viewer.components.Search",{
                                 me.results.setTitle (me.results.title + " (Maximum bereikt. Verfijn zoekopdracht)");
                             }
                         }
-                        me.mainContainer.setLoading(false);
+                        Ext.getCmp(me.name + 'ContentPanel').setLoading(false);
                     },
                     failure: function(result, request) {
                         var response = Ext.JSON.decode(result.responseText);
                         Ext.MessageBox.alert("Foutmelding", response.error);
-                        me.mainContainer.setLoading(false);
+                        Ext.getCmp(me.name + 'ContentPanel').setLoading(false);
                     }
                 });
             }
@@ -351,7 +351,10 @@ Ext.define ("viewer.components.Search",{
     groupedResult : null,
     showSearchResults : function(){
         var html = "";
-        if(this.searchResult.length <= 0){
+        if (!Ext.isDefined(this.searchResult)) {
+            html = "<div style=\"padding: 10px; \">Fout bij het zoeken.</div>";
+        }
+        if (Ext.isDefined(this.searchResult) && this.searchResult.length <= 0) {
             html = "<div style=\"padding: 10px;\">Er zijn geen resultaten gevonden.</div>";
         }
         var me = this;
@@ -359,34 +362,35 @@ Ext.define ("viewer.components.Search",{
         var panelList = [{
                 xtype: 'panel', // << fake hidden panel
                 hidden: true,
-                collapsed: false
-            }];
+            collapsed: false
+        }];
         this.groupedResult = new Object();
-        for ( var i = 0 ; i < this.searchResult.length ; i ++){
-            var result = this.searchResult[i];
-            this.addResult(result,i);
+        if (Ext.isDefined(this.searchResult)) {
+            for (var i = 0; i < this.searchResult.length; i++) {
+                var result = this.searchResult[i];
+                this.addResult(result, i);
+            }
+
+            for (var key in this.groupedResult) {
+                var list = this.groupedResult[key];
+                var subSetPanel = Ext.create('Ext.panel.Panel', {
+                    title: key + " (" + list.length + ")",
+                    flex: 1,
+                    height: 200,
+                    autoScroll: true,
+                    collapsible: true,
+                    collapsed: true,
+                    style: {
+                        padding: '0px 0px 10px 0px'
+                    },
+                    items: list
+                });
+                panelList.push(subSetPanel);
+            }
+
         }
-        
-        for (var key in this.groupedResult) {
-            var list = this.groupedResult[key];
-            var subSetPanel = Ext.create('Ext.panel.Panel', {
-                title: key + " (" + list.length + ")",
-                flex:1,
-                height: 200,
-                autoScroll:true,
-                collapsible:true,
-                collapsed:true,
-                style: {
-                    padding: '0px 0px 10px 0px'
-                },
-                items: list
-            });
-            panelList.push(subSetPanel);
-        }
-        
-        
         me.results = Ext.create('Ext.panel.Panel', {
-            title: 'Resultaten (' + this.searchResult.length + ') :',
+            title: 'Resultaten (' +( Ext.isDefined(this.searchResult) ? this.searchResult.length : 0 )+ ') :',
             renderTo: this.resultPanelId,
             html: html,
             height: '100%',
@@ -397,7 +401,7 @@ Ext.define ("viewer.components.Search",{
                 animate: true,
                 flex:1,
                 height: 300,
-                multi:false
+                multi:true
             },
             autoScroll: false,
             style: { 
@@ -405,7 +409,7 @@ Ext.define ("viewer.components.Search",{
             },
             items: panelList
         });
-        if(this.searchResult.length === 1){
+        if(this.searchResult && this.searchResult.length === 1){
             this.handleSearchResult(this.searchResult[0]);
         }else{
             if(this.isPopup) {
@@ -468,10 +472,25 @@ Ext.define ("viewer.components.Search",{
                 var solrConfig = searchconfig.solrConfig[config.searchConfig];
                 var switchOnLayers = solrConfig.switchOnLayers;
                 if(switchOnLayers){
+                    var selectedContentChanged = false;
                     for(var i = 0 ; i <switchOnLayers.length ;i++){
                         var appLayerId = switchOnLayers[i];
-                        var applayer = this.viewerController.getAppLayerById(appLayerId);
-                        this.viewerController.setLayerVisible(applayer,true);
+                        var appLayer = this.viewerController.app.appLayers[appLayerId];
+                        var layer = this.viewerController.getLayer(appLayer);
+                        if(!layer){
+                            var level = this.viewerController.getAppLayerParent(appLayerId);
+                            this.viewerController.app.selectedContent.push({
+                                id: level.id,
+                                type: "level"
+                            });
+                            selectedContentChanged = true;
+                            layer = this.viewerController.createLayer(appLayer);
+                        }
+                        this.viewerController.setLayerVisible(appLayer,true);
+                        
+                    }
+                    if(selectedContentChanged){
+                        this.viewerController.fireEvent(viewer.viewercontroller.controller.Event.ON_SELECTEDCONTENT_CHANGE);
                     }
                 }
             }
@@ -530,7 +549,7 @@ Ext.define ("viewer.components.Search",{
             var config = this.getSearchconfigById(value);
             return config;
         }else{
-            this.searchconfigs[0];
+            return this.searchconfigs[0];
         }
     },
     getSearchconfigById:function(id){
@@ -576,7 +595,7 @@ Ext.define ("viewer.components.Search",{
 
         this.searchResult = results;
         this.showSearchResults();
-        this.mainContainer.setLoading(false);
+        Ext.getCmp(this.name + 'ContentPanel').setLoading(false);
     },
     loadVariables: function(param){
         var searchConfig = param.substring(0,param.indexOf(":"));

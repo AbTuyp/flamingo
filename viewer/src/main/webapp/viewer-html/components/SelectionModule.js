@@ -421,6 +421,7 @@ Ext.define ("viewer.components.SelectionModule",{
                             var level = levels[i];
                             var l = me.addLevel(level.id, true, false, false, foundIds,descriptions);
                             if(l !== null){
+                                l.expanded = true;
                                 levelsToShow.push(l);
                             }
                         }
@@ -1391,7 +1392,7 @@ Ext.define ("viewer.components.SelectionModule",{
     addToSelection: function(record) {
         var me = this;
         var nodeType = me.getNodeType(record);        
-        if(nodeType == "appLayer" || nodeType == "layer" || (nodeType == "maplevel" && (!me.onRootLevel(record, me.activeTree)) || me.getActiveTreeType() === "customServiceTree")) {
+        if(nodeType == "appLayer" || nodeType == "layer" || (nodeType == "maplevel" && (!me.onRootLevel(record, me.activeTree)))) {
             var rootNode = me.treePanels.selectionTree.treePanel.getRootNode();
             var recordOrigData = me.getOrigData(record);
             var recordid = record.get('id');
