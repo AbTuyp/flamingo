@@ -43,8 +43,8 @@
             commonRole="ExtendedUser"
         /-->
   </Realm>
-  <Parameter name="componentregistry.path" value="/viewer-html/components,/opt/flamingo_3rdparty/ro-tercera-component" override="false"/>
-  <Parameter name="flamingo.solr.url" value="http://webkaart.b3p.nl/solr/" override="false"/>
-  <Parameter name="flamingo.solr.setup" value="false" override="false"/>
-  <Parameter name="flamingo.data.dir" value="/opt/flamingo_data" override="false"/>
+  <Parameter name="componentregistry.path" override="false" value="/viewer-html/components,/opt/flamingo_3rdparty/ro-tercera-component"/>
+  <Parameter name="flamingo.solr.url" override="false" value="http://webkaart.b3p.nl/solr/"/>
+  <Parameter name="flamingo.solr.setup" override="false" value="false"/>
+  <Parameter name="flamingo.data.dir" override="false" value="/opt/flamingo_data"/>
 </Context>
