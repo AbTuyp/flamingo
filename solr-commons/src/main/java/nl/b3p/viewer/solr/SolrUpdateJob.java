@@ -212,6 +212,7 @@ public class SolrUpdateJob implements Job {
                     solrServer.commit();
                     total += percentagePerIteration;
                     status.setProgress(total.intValue());
+                    status.setCurrentAction("Features toevoegen aan solr index (" + begin +" t/m "+ end + " van de " + docs.size() + ")");
                 }
             }else{
                 solrServer.add(docs);
