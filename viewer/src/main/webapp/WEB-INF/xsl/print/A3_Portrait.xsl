@@ -121,7 +121,12 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
 
         <fo:block margin-left="0.2cm" margin-top="0cm" xsl:use-attribute-sets="default-font">
             
-           <fo:block margin-left="0.2cm" margin-top="0.3cm" font-size="8pt" font-style="italic">
+
+            <xsl:call-template name="overview-block">
+                <xsl:with-param name="width" select="'170px'"/>
+                <xsl:with-param name="height" select="'120px'"/>
+            </xsl:call-template>
+            <fo:block margin-left="0.2cm" margin-top="0.3cm" font-size="8pt" font-style="italic">
                 <xsl:value-of select="remark"/>
                 <xsl:call-template name="legend"/>
             </fo:block>
