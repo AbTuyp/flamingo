@@ -430,7 +430,7 @@ Ext.define ("viewer.components.Print",{
                     }                  
                 },{
                     xtype: 'button',
-                    text: 'Opslaan via PDF'  ,
+                    text: 'Printen via PDF'  ,
                     componentCls: 'mobileLarge',
                     style: {
                         "float": "right",
