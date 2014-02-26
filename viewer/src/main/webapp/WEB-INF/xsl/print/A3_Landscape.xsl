@@ -53,7 +53,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                     </fo:block-container>
 
 
-                    <fo:block-container width="8.9cm" height="1cm" top="0.3cm" left="34cm" background-color="#FFFFFF" xsl:use-attribute-sets="column-block">
+                    <fo:block-container width="8.9cm" height="1cm" top="0.5cm" left="34cm" background-color="#FFFFFF" xsl:use-attribute-sets="column-block">
                         <fo:block>
                             <fo:external-graphic src="url('prov_utrecht_rgb.jpg')" width="220px" height="56px"  content-height="scale-to-fit" content-width="scale-to-fit" scaling="uniform"/>
                         </fo:block>
