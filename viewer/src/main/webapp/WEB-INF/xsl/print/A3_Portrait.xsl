@@ -135,7 +135,10 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 <fo:block>
                     <xsl:call-template name="windrose">
                         <xsl:with-param name="angle" select="angle"/>
-                        <xsl:with-param name="top" select="'-4cm'"/>
+                        <xsl:with-param name="top" select="'-0.5cm'"/>
+                        <xsl:with-param name="left" select="'4cm'"/>
+                        <xsl:with-param name="width" select="'1cm'"/>
+                        <xsl:with-param name="height" select="'1cm'"/>
                     </xsl:call-template>
                     <!-- create scalebar -->
                     <fo:block margin-left="0.2cm" margin-top="0.2cm">
