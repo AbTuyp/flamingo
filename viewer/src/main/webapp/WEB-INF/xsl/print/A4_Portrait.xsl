@@ -52,9 +52,9 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                         <xsl:call-template name="title-block"/>
                     </fo:block-container>
                     
-                    <fo:block-container width="8.9cm" height="1.5cm" top="1.1cm" left="13.0cm" background-color="#FFFFFF" xsl:use-attribute-sets="column-block">
+                    <fo:block-container width="7cm" height="1.cm" top="1.3cm" left="13.9cm" background-color="#FFFFFF" xsl:use-attribute-sets="column-block">
                         <fo:block>
-                            <fo:external-graphic src="url('prov_utrecht_rgb.jpg')" width="220px" height="56px"  content-height="scale-to-fit" content-width="scale-to-fit" scaling="uniform"/>
+                            <fo:external-graphic src="url('prov_utrecht_rgb.jpg')" width="190px" height="48px"  content-height="scale-to-fit" content-width="scale-to-fit" scaling="uniform"/>
                         </fo:block>
                     </fo:block-container>
 

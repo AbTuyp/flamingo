@@ -86,7 +86,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                         <xsl:call-template name="title-block"/>
                     </fo:block-container>
                     
-                    <fo:block-container width="9.9cm" height="1.5cm" top="1cm" left="21.0cm" background-color="#FFFFFF" xsl:use-attribute-sets="column-block">
+                    <fo:block-container width="9.9cm" height="1.5cm" top="1cm" left="21.2cm" background-color="#FFFFFF" xsl:use-attribute-sets="column-block">
                         <fo:block>
                             <fo:external-graphic src="url('prov_utrecht_rgb.jpg')" width="220px" height="56px"  content-height="scale-to-fit" content-width="scale-to-fit" scaling="uniform"/>
                         </fo:block>
