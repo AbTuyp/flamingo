@@ -26,7 +26,7 @@
   <ResourceLink global="jdbc/geo_viewer-webkaart" name="jdbc/geo_viewer" type="javax.sql.Datasource"/>
   <!-- Optional: use LockoutRealm instead of CombinedRealm to prevent brute-forcing -->
   <Realm className="org.apache.catalina.realm.CombinedRealm">
-    <Realm allRolesMode="authOnly" className="org.apache.catalina.realm.DataSourceRealm" dataSourceName="jdbc/geo_viewer" digest="SHA-1" roleNameCol="group_" userCredCol="password" userNameCol="username" userRoleTable="user_groups" userTable="user_"/>
+    <Realm allRolesMode="authOnly" className="org.apache.catalina.realm.DataSourceRealm" dataSourceName="jdbc/geo_viewer-webkaart" digest="SHA-1" roleNameCol="group_" userCredCol="password" userNameCol="username" userRoleTable="user_groups" userTable="user_"/>
     <!-- Use JNDIRealm for authenticating against a LDAP server (such as
              Active Directory):
              http://tomcat.apache.org/tomcat-6.0-doc/config/realm.html
@@ -44,7 +44,7 @@
         /-->
   </Realm>
   <Parameter name="componentregistry.path" override="false" value="/viewer-html/components,/opt/flamingo_3rdparty/ro-tercera-component"/>
-  <Parameter name="flamingo.solr.url" override="false" value="http://webkaart.b3p.nl/solr/"/>
+  <Parameter name="flamingo.solr.url" override="false" value="http://webkaarttest.b3p.nl/solr/"/>
   <Parameter name="flamingo.solr.setup" override="false" value="false"/>
   <Parameter name="flamingo.data.dir" override="false" value="/opt/flamingo_data"/>
 </Context>
