@@ -88,7 +88,7 @@ Ext.define ("viewer.components.SpatialFilter",{
     },
     
     drawGeometry: function(type){
-        var appendFilter = Ext.getCmp (this.name + 'AppendFilter')
+        var appendFilter = Ext.getCmp (this.name + 'AppendFilter');
         if(!appendFilter.getValue()){
             this.vectorLayer.removeAllFeatures();
             this.features = new Array();
@@ -110,14 +110,14 @@ Ext.define ("viewer.components.SpatialFilter",{
             }
             multi += ")";
         }
-        this.setFilter(multi);
-    },
-    setFilter: function(geometry){
         var appLayer = this.layerSelector.getSelectedAppLayer();
+        this.setFilter(multi, appLayer);
+    },
+    setFilter: function(geometry, appLayer){
         var me = this;          
         if(appLayer.attributes === undefined || appLayer.attributes === null) {   
             this.viewerController.getAppLayerFeatureService(appLayer).loadAttributes(appLayer,function(){
-                me.setFilter(geometry);
+                me.setFilter(geometry, appLayer);
             },function(e){
                 Ext.MessageBox.alert("Error", e);
             });
@@ -195,7 +195,7 @@ Ext.define ("viewer.components.SpatialFilter",{
     },
       
     featureAdded : function (obj, feature){
-        var applyDirect = Ext.getCmp (this.name + 'ApplyDirect')
+        var applyDirect = Ext.getCmp (this.name + 'ApplyDirect');
         this.features.push(feature.wktgeom);
         if(applyDirect.getValue()){
             this.applyFilter();
