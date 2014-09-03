@@ -13,8 +13,8 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
 
     <xsl:param name="versionParam" select="'1.0'"/>
 
-    <xsl:variable name="map-width-px" select="'612'"/>
-    <xsl:variable name="map-height-px" select="'1053'"/>
+    <xsl:variable name="map-width-px" select="'613'"/>
+    <xsl:variable name="map-height-px" select="'1054'"/>
     
     <!-- See legend.xsl (does not currently affect size of other elements!) -->
     <xsl:variable name="legend-width-cm" select="6.2"/>
@@ -181,8 +181,8 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
                 <xsl:value-of select="$bbox-corrected"/>
             </xsl:variable>
 
-            <fo:block-container margin-top="0.5cm" height="17cm" xsl:use-attribute-sets="column-block">
-                <fo:block margin-left="0.05cm" margin-right="0.05cm">
+            <fo:block-container  height="17cm" xsl:use-attribute-sets="column-block">
+                <fo:block margin-top="-0.06cm" margin-left="0.0cm" margin-right="0.0cm">
                     <fo:external-graphic src="{$map}" content-height="scale-to-fit" content-width="scale-to-fit" scaling="uniform" width="{$map-width-px}" height="{$map-height-px}"/>
                 </fo:block>
             </fo:block-container>
