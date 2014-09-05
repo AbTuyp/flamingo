@@ -3,13 +3,13 @@
   components.json file and component config javascript sources from the viewer -->
 <Context antiJARLocking="true" crossContext="true" disableURLRewriting="true" path="/viewer-admin">
 
-  <Parameter name="componentregistry.path" value="/viewer-html/components,/opt/flamingo_data/3rd-party-components/Dbk-Component" override="false"/>
+  <Parameter name="componentregistry.path" value="/viewer-html/components,//v-file04/prog/SafetyMaps/B3PApps/dbk-component" override="false"/>
   <!-- Customized context parameters; see web.xml -->
   <!--Parameter name="viewer.url" value="/viewer" override="false"/-->
   <!--Parameter name="monitoring.mail.from.email" value="no-reply@b3partners.nl" override="false"/-->
   <!--Parameter name="monitoring.mail.from.name" value="Geo services monitoring" override="false"/-->
   <!--Parameter name="monitoring.schedule.minutes" value="30" override="false"/-->
-  <Parameter name="flamingo.data.dir" value="/opt/flamingo_data" override="false"/>
+  <Parameter name="flamingo.data.dir" value="//v-file04/prog/SafetyMaps/B3PApps/flamingo_data" override="false"/>
   <!-- For Tomcat: define datasource in server.xml, for example:
 
     <Server ...>
