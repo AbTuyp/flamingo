@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Context antiJARLocking="true" disableURLRewriting="true" path="/viewer">
-  <Parameter name="componentregistry.path" override="false" value="/viewer-html/components"/>
+	<Parameter name="componentregistry.path" value="/viewer-html/components,//v-file04/prog/SafetyMaps/B3PApps/dbk-component" override="false"/>
   <!-- For Tomcat: define datasource in server.xml, for example:
 
     <Server ...>
