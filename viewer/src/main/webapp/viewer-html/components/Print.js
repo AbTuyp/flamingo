@@ -750,7 +750,7 @@ Ext.define ("viewer.components.Print",{
         for (var i = 0 ; i < this.extraInfoCallbacks.length ; i++){
             var entry = this.extraInfoCallbacks[i];
             var extraInfo = {
-                class: Ext.getClass(entry.component).getName(),
+                className:   Ext.getClass(entry.component).getName(),
                 componentName: entry.component.name,
                 info: entry.callback() // Produces an JSONObject
             };

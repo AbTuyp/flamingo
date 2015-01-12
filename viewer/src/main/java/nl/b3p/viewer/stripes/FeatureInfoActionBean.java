@@ -21,8 +21,6 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.util.GeometricShapeFactory;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,9 +41,7 @@ import org.apache.commons.logging.LogFactory;
 import org.geotools.data.FeatureSource;
 import org.geotools.data.Query;
 import org.geotools.factory.CommonFactoryFinder;
-import org.geotools.factory.GeoTools;
 import org.geotools.filter.text.cql2.CQL;
-import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -63,49 +59,49 @@ public class FeatureInfoActionBean implements ActionBean {
     private static final Log log = LogFactory.getLog(FeatureInfoActionBean.class);
 
     public static final String FID = "__fid";
-    
+
     private ActionBeanContext context;
 
     private static final int TIMEOUT = 5000;
-    
+
     @Validate
     private Application application;
-    
+
     @Validate
     private int limit = 10;
-    
+
     @Validate
     private String x;
-    
-    @Validate 
+
+    @Validate
     private String y;
-    
+
     @Validate
     private String requestId;
-    
+
     @Validate
     private String distance;
-    
+
     @Validate
     private String queryJSON;
-    
+
     @Validate
     private boolean edit = false;
-    
+
     @Validate
     private boolean arrays = false;
-    
+
     @Validate
-    private List<Long> attributesToInclude = new ArrayList();
-    
+    private List<String> attributesToInclude = new ArrayList();
+
     @Validate
     private boolean graph = false;
-    
+
     //<editor-fold defaultstate="collapsed" desc="getters and setters">
     public ActionBeanContext getContext() {
         return context;
     }
-    
+
     public void setContext(ActionBeanContext context) {
         this.context = context;
     }
@@ -117,7 +113,7 @@ public class FeatureInfoActionBean implements ActionBean {
     public void setApplication(Application application) {
         this.application = application;
     }
-    
+
     public int getLimit() {
         return limit;
     }
@@ -133,7 +129,7 @@ public class FeatureInfoActionBean implements ActionBean {
     public void setDistance(String distance) {
         this.distance = distance;
     }
-    
+
     public String getQueryJSON() {
         return queryJSON;
     }
@@ -182,11 +178,11 @@ public class FeatureInfoActionBean implements ActionBean {
         this.requestId = requestId;
     }
 
-    public List<Long> getAttributesToInclude() {
+    public List<String> getAttributesToInclude() {
         return attributesToInclude;
     }
 
-    public void setAttributesToInclude(List<Long> attributesToInclude) {
+    public void setAttributesToInclude(List<String> attributesToInclude) {
         this.attributesToInclude = attributesToInclude;
     }
 
@@ -198,17 +194,17 @@ public class FeatureInfoActionBean implements ActionBean {
         this.graph = graph;
     }
     //</editor-fold>
-    
+
     public Resolution info() throws JSONException {
         JSONArray queries = new JSONArray(queryJSON);
-        
+
         JSONArray responses = new JSONArray();
-        
+
         FeatureSource fs = null;
-        
+
         for(int i = 0; i < queries.length(); i++) {
             JSONObject query = queries.getJSONObject(i);
-           
+
             JSONObject response = new JSONObject();
             responses.put(response);
             response.put("request", query);
@@ -221,7 +217,7 @@ public class FeatureInfoActionBean implements ActionBean {
             try {
                 ApplicationLayer al = null;
                 GeoService gs = null;
-                
+
                 if(query.has("appLayer")) {
                     al = Stripersist.getEntityManager().find(ApplicationLayer.class, query.getLong("appLayer"));
                 } else {
@@ -238,7 +234,7 @@ public class FeatureInfoActionBean implements ActionBean {
                     }
                     // Edit component does not handle this very gracefully
                     // but the error when saving is ok
-                    
+
                     //if(edit && !Authorizations.isAppLayerWriteAuthorized(application, al, context.getRequest())) {
                     //    error = "U heeft geen rechten om deze kaartlaag te bewerken";
                     //    break;
@@ -258,19 +254,19 @@ public class FeatureInfoActionBean implements ActionBean {
                         break;
                     }else{
                         response.put("featureType", l.getFeatureType().getId());
-                        
+
                     }
                     String filter = query.optString("filter", null);
-                    
+
                     fs = l.getFeatureType().openGeoToolsFeatureSource(TIMEOUT);
                     Query q = new Query(fs.getName().toString());
-                    
+
                     String geomAttribute = fs.getSchema().getGeometryDescriptor().getLocalName();
 
                     FilterFactory2 ff = CommonFactoryFinder.getFilterFactory2();
-                    
+
                     Filter spatialFilter=null;
-                    
+
                     boolean useIntersect = false;
                     if (l.getService().getDetails().containsKey(GeoService.DETAIL_USE_INTERSECT)){
                         ClobElement ce = l.getService().getDetails().get(GeoService.DETAIL_USE_INTERSECT);
@@ -280,7 +276,7 @@ public class FeatureInfoActionBean implements ActionBean {
                         Point point = new GeometryFactory().createPoint(new Coordinate(
                             Double.parseDouble(x),
                             Double.parseDouble(y)));
-                    
+
                         spatialFilter = ff.dwithin(ff.property(geomAttribute), ff.literal(point), Double.parseDouble(distance), "meters");
                     }else{
                         GeometricShapeFactory shapeFact = new GeometricShapeFactory();
@@ -293,26 +289,26 @@ public class FeatureInfoActionBean implements ActionBean {
                     }
 
                     Filter currentFilter = filter != null && filter.trim().length() > 0 ? CQL.toFilter(filter) : null;
-                    
+
                     if (currentFilter!=null){
                         currentFilter = (Filter) currentFilter.accept(new ChangeMatchCase(false), null);
                     }
-                    
+
                     Filter f = currentFilter != null ? ff.and(spatialFilter, currentFilter) : spatialFilter;
-                    
+
                     //only remove unit if it is a JDBC datastore
                     if (JDBCFeatureSource.PROTOCOL.equals(l.getService().getProtocol())){
                         f = (Filter)f.accept(new RemoveDistanceUnit(), null);
                     }
-                    
+
                     f = FeatureToJson.reformatFilter(f, l.getFeatureType());
-                    
+
                     q.setFilter(f);
                     q.setMaxFeatures(limit);
-                    
+
                     FeatureToJson ftjson =new FeatureToJson(arrays, edit,graph,attributesToInclude);
                     JSONArray features = ftjson.getJSONFeatures(al,l.getFeatureType(), fs, q,null,null);
-                    
+
                     response.put("features", features);
                 } while(false);
             } catch(Exception e) {
@@ -327,7 +323,7 @@ public class FeatureInfoActionBean implements ActionBean {
                 }
             }
         }
-        
-        return new StreamingResolution("application/json", new StringReader(responses.toString(4)));        
+
+        return new StreamingResolution("application/json", new StringReader(responses.toString(4)));
     }
 }

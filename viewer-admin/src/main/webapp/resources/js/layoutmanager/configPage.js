@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2012-2013 B3Partners B.V.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,6 +22,9 @@ Ext.onReady(function(){
     if(showHelp()){
         createHelpTab();
     }
+    if(showConfigureHeight()) {
+        createHeightLayoutTab();
+    }
     if(metadata.configSource != undefined) {
         customConfiguration= new Ext.create("viewer.components.CustomConfiguration","config", configObject);
     } else {
@@ -35,7 +38,7 @@ Ext.onReady(function(){
             if(metadata.extPropertyGridConfigs && metadata.extPropertyGridConfigs.propertyNames) {
                 propertyNames = metadata.extPropertyGridConfigs.propertyNames;
             }
-            /* 
+            /*
              * Check if all source config items exist in the metadata source items,
              * sometimes other items like isPopup would show up in the property grid,
              * because they are added to the configuration automatically, while these
@@ -62,7 +65,7 @@ Ext.onReady(function(){
                 propertyNames: propertyNames
             });
         }
-    
+
     }
 });
 function createHelpTab() {
@@ -82,7 +85,7 @@ function createHelpTab() {
             layout: 'anchor',
             defaults: {
                 width: 400
-            },  
+            },
             items:[
             {
                 xtype: 'checkbox',
@@ -107,7 +110,7 @@ function createHelpTab() {
             }]
         }],
         renderTo: "help"
-    }); 
+    });
 }
 function createLayoutTab(){
     if(details == undefined || details == null){
@@ -119,7 +122,7 @@ function createLayoutTab(){
     var labelWidth = 300;
     var centerChecked = details.position == "center";
     var fixedChecked = details.position == "fixed";
-    
+
     layoutForm = new Ext.form.FormPanel({
         frame: false,
         width: 480,
@@ -134,21 +137,21 @@ function createLayoutTab(){
             items:[
             {
                 xtype: 'radiogroup',
-                name: 'position', 
+                name: 'position',
                 columns: 1,
                 vertical: true,
                 value: details.position,
                 labelWidth:350,
                 items: [
                 {
-                    boxLabel: 'Gecentreerd', 
-                    name: 'position', 
-                    inputValue: 'center' , 
+                    boxLabel: 'Gecentreerd',
+                    name: 'position',
+                    inputValue: 'center' ,
                     checked: centerChecked
                 },
                 {
-                    boxLabel: 'Vaste Positie', 
-                    name: 'position', 
+                    boxLabel: 'Vaste Positie',
+                    name: 'position',
                     checked: fixedChecked,
                     inputValue: 'fixed',
                     listeners:{
@@ -168,7 +171,7 @@ function createLayoutTab(){
                 hidden : true,
                 labelWidth:100
             },
-            { 
+            {
                 xtype: 'textfield',
                 fieldLabel: 'y',
                 id: "y",
@@ -187,7 +190,7 @@ function createLayoutTab(){
                 labelWidth:labelWidth
             }]
         },
-        { 
+        {
             xtype:'fieldset',
             columnWidth: 0.5,
             title: 'Venstergrootte',
@@ -201,7 +204,7 @@ function createLayoutTab(){
                 value: details.width,
                 labelWidth:100
             },
-            { 
+            {
                 xtype: 'textfield',
                 fieldLabel: 'Hoogte',
                 name: 'height',
@@ -217,12 +220,41 @@ function createLayoutTab(){
                 labelWidth:labelWidth
             }]
         }],
-        
+
         renderTo: "layout"//(2)
-    });      
+    });
     if(fixedChecked){
         toggleXY(true);
     }
+}
+
+function createHeightLayoutTab() {
+    var compHeight = '';
+    if(configObject && configObject.hasOwnProperty('componentHeight')) {
+        compHeight = configObject.componentHeight;
+    }
+    var componentLayoutForm = new Ext.form.FormPanel({
+        frame: false,
+        width: 480,
+        border: 0,
+        items: [{
+            xtype:'fieldset',
+            columnWidth: 0.5,
+            title: 'Component afmetingen',
+            collapsible: false,
+            defaultType: 'textfield',
+            layout: 'anchor',
+            items:[{
+                xtype: 'numberfield',
+                fieldLabel: 'Hoogte (px)',
+                id: "componentHeight",
+                name: 'componentHeight',
+                value: compHeight,
+                labelWidth:100
+            }]
+        }],
+        renderTo: "component-layout"
+    });
 }
 
 function toggleXY(show){
@@ -235,7 +267,7 @@ function toggleXY(show){
     }
 }
 
-function save(){ 
+function save(){
     if(metadata.configSource != undefined){
         var config = customConfiguration.getConfiguration();
         continueSave(config);
@@ -246,7 +278,7 @@ function save(){
             var btn = Ext.get('saveConfigButton');
             btn.focus();
         }else{
-            getPropertyGridConfig();            
+            getPropertyGridConfig();
         }
     }
 }
@@ -266,7 +298,7 @@ function continueSave(config){
                 var item = fieldSetItems.items.get(j);
                 if(item.name != undefined){
                     if(Ext.isObject(item.getValue())){
-                        layout[item.name] = item.getValue().position;  
+                        layout[item.name] = item.getValue().position;
                     }else{
                         if (item.getValue()!=""){
                             layout[item.name] = item.getValue();
@@ -292,6 +324,12 @@ function continueSave(config){
             config['showHelpButton'] = showHelpButton.getValue() ? "true" : "false";
         }
     }
+    if(showConfigureHeight()) {
+        var heightConfig = Ext.getCmp('componentHeight');
+        if(heightConfig && heightConfig.getValue() !== '') {
+            config['componentHeight'] = parseInt(heightConfig.getValue(), 10);
+        }
+    }
     var configFormObject = Ext.get("configObject");
     configFormObject.dom.value = JSON.stringify(config);
     document.getElementById('configForm').submit();
@@ -304,25 +342,46 @@ function showHelp() {
     return false;
 }
 
+function showConfigureHeight() {
+    var showComponentHeight = false,
+        heightRegions = ["leftmargin_top", "leftmargin_bottom", "rightmargin_top", "rightmargin_bottom"];
+    if(metadata.hasOwnProperty('restrictions')) {
+        for(x in metadata.restrictions) {
+            for(y in heightRegions) {
+                if(metadata.restrictions[x] === heightRegions[y]) {
+                    showComponentHeight = true;
+                }
+            }
+        }
+    }
+    return showComponentHeight;
+}
+
 Ext.onReady(function() {
-    Ext.select('.tabdiv', true).removeCls('tabdiv').addCls('x-hide-display');   
+    Ext.select('.tabdiv', true).removeCls('tabdiv').addCls('x-hide-display');
     var tabs = [], htmlEditorRendered = false;
     tabs = [{
-        contentEl:'config', 
+        contentEl:'config',
         title: 'Configuratie'
     },{
-        contentEl:'rights', 
+        contentEl:'rights',
         title: 'Rechten'
     }];
     if(metadata.type != undefined && metadata.type == "popup"){
         tabs.push({
-            contentEl:'layout', 
+            contentEl:'layout',
+            title: 'Layout'
+        });
+    }
+    if(showConfigureHeight()){
+        tabs.push({
+            contentEl:'component-layout',
             title: 'Layout'
         });
     }
     if(showHelp()){
         tabs.push({
-            contentEl:'help', 
+            contentEl:'help',
             title: 'Help'
         });
     }

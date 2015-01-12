@@ -80,6 +80,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             Ext.fly('serviceBboxTr').setVisibilityMode(Ext.Element.DISPLAY).setVisible(protocol == "tiled");
             Ext.fly('extensionTr').setVisibilityMode(Ext.Element.DISPLAY).setVisible(protocol == "tiled");
             Ext.fly('crsTr').setVisibilityMode(Ext.Element.DISPLAY).setVisible(protocol == "tiled");
+            Ext.fly('useProxy').setVisibilityMode(Ext.Element.DISPLAY).setVisible(protocol == "wms");
         }
         Ext.onReady(function() {
             appendPanel('headertext', 'formcontent');
@@ -119,6 +120,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 <label>
                     <stripes:checkbox name="overrideUrl"/> Gebruik altijd ingevulde URL in plaats van URLs in GetCapabilities
                 </label>
+            </td>
+        </tr>
+        <tr id="useUrlTr">     
+            <td>Exceptiontype:</td>
+            <td>
+                <stripes:select name="exception_type" value="Inimage"  id="exception_type">
+                    <stripes:option value="-1">Kies..</stripes:option>
+                    <stripes:options-enumeration enum="nl.b3p.viewer.config.services.WMSExceptionType"  />
+                </stripes:select>
             </td>
         </tr>
         <tr id="serviceNameTr">
@@ -197,6 +207,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <tr>
             <td colspan="2">
                 <stripes:checkbox name="useIntersect"/> Gebruik 'intersect' filter (in plaats van 'DWithin') om data op te halen.
+            </td>
+        </tr>
+        <tr id="useProxy">
+            <td colspan="2">
+                <stripes:checkbox name="useProxy"/> Gebruik proxy om kaarten op te halen.
             </td>
         </tr>
         <c:if test="${!edit}">

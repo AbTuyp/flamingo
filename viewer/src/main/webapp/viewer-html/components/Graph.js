@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2012-2013 B3Partners B.V.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -35,6 +35,9 @@ Ext.define("viewer.components.Graph", {
     constructor: function(conf) {
         viewer.components.Graph.superclass.constructor.call(this, conf);
         this.initConfig(conf);
+        if(this.config.layers !== null){
+            graph_layersArrayIndexesToAppLayerIds(conf);
+        }
         var me = this;
         this.renderButton({
             handler: function() {
@@ -45,14 +48,12 @@ Ext.define("viewer.components.Graph", {
             tooltip: me.tooltip,
             label: me.label
         });
-        // Make hook for Returned feature infos
-        // Stub for development
         this.viewerController.addListener(viewer.viewercontroller.controller.Event.ON_LAYERS_INITIALIZED, this.initialize, this);
         return this;
     },
     initialize: function() {
         this.initialized = true;
-            
+
         this.toolMapClick =  this.viewerController.mapComponent.createTool({
             type: viewer.viewercontroller.controller.Tool.MAP_CLICK,
             id: this.name + "toolMapClick",
@@ -62,7 +63,7 @@ Ext.define("viewer.components.Graph", {
             },
             viewerController: this.viewerController
         });
-        
+
         this.layers = [];
         for (var i = 0 ; i < this.graphs.length ;i ++){
             var graph = this.graphs[i];
@@ -126,22 +127,17 @@ Ext.define("viewer.components.Graph", {
             div: this.name + 'LayerSelectorPanel'
         };
         this.layerSelector = Ext.create("viewer.components.LayerSelector",config);
-        this.layerSelector.addListener(viewer.viewercontroller.controller.Event.ON_LAYERSELECTOR_CHANGE,this.layerChanged,this);
         if(this.layers.length === 1){
             this.layerSelector.setValue(this.layers[0]);
         }
     },
-    layerChanged : function (layer){
-      var a = 0;  
-    },
-            
     mapClicked : function(tool, comp){
        this.deactivateMapClick();
         //Ext.get(this.getContentDiv()).mask("Haalt features op...")
         var coords = comp.coord;
         var x = coords.x;
         var y = coords.y;
-        
+
         var appLayer = this.layerSelector.getValue();
         if(appLayer === null) {
             Ext.Msg.alert('Let op', 'Selecteer eerst een kaartlaag');
@@ -197,22 +193,22 @@ Ext.define("viewer.components.Graph", {
             json = feature;
             if(json.related_featuretypes){
                 for (var j = 0 ; j < json.related_featuretypes.length ;j++){
-                    var linked = this.getLinkedData(json.related_featuretypes[i], attributes, configId);
+                    var linked = this.getLinkedData(json.related_featuretypes[j], attributes, configId);
                     json.linkedData = linked;
                     break;
                 }
+                break;
             }
         }
-        var a =0;
     },
     getLinkedData : function (related_feature,attributes, configId){
         var appLayer = this.layerSelector.getValue();
         var options = {};
-         
+
         var filter = "&filter="+encodeURIComponent(related_feature.filter);
-        
+
         var featureType="&featureType="+related_feature.id;
-                
+
         options.application = this.appId;
         options.appLayer = appLayer.id;
         options.limit = 1000;
@@ -228,47 +224,23 @@ Ext.define("viewer.components.Graph", {
                 var response = Ext.JSON.decode(result.responseText);
                 var features = response.features;
                 this.createGraph(appLayer, features, configId);
-                var a =0;
             },
             failure: function(result) {
-               var b =0;
+               this.viewerController.logger.error(result);
             }
         });
     },
     buttonClick: function(){
         this.popup.show();
     },
-    featureInfoReturned: function(layer, options) {
-        this.loadGraph(layer);
-    },
-    loadGraph: function(appLayer) {
-        this.popup.show();
-        this.popup.setWindowTitle(appLayer.alias);
-        var featureService = appLayer.featureService;
-        if (featureService) {
-
-            // Create store
-            // Create graph
-            //  loadFeatures: function(appLayer, successFunction, failureFunction,options,scope) {
-            var filter;
-            var me = this;
-            if (appLayer.attributes === undefined) {
-                featureService.loadAttributes(me.appLayer, function(attributes) {
-                    me.loadData(appLayer);
-                });
-            } else {
-                this.loadData(appLayer);
-            }
-        } else {
-            this.viewerController.logger.error("No featureservice available for layer " + appLayer.alias);
-        }
-
-    },
     createGraph : function (appLayer,  data, configId){
-        var gco = this.graphs[configId];//this.getConfigByAppLayer(appLayer.id);
+        var gco = this.graphs[configId];
         var me = this;
-        var fields = this.getAttributeName(appLayer,gco.serieAttribute);
-        fields.push(this.getAttributeName(appLayer,gco.categoryAttribute));
+        var fields = this.getAttributeTitle(appLayer,gco.serieAttribute);
+        if(!(fields instanceof Array)){
+            fields = [fields];
+        }
+        fields.push(this.getAttributeTitle(appLayer,gco.categoryAttribute));
         var store = Ext.create('Ext.data.JsonStore', {
             fields: fields,
             data: data
@@ -288,8 +260,8 @@ Ext.define("viewer.components.Graph", {
                 series.push({
                     type: graphType,
                     axis: 'left',
-                    xField: me.getAttributeName(appLayer, gco.categoryAttribute),
-                    yField: me.getAttributeName(appLayer, serieAttribute),
+                    xField: me.getAttributeTitle(appLayer, gco.categoryAttribute),
+                    yField: me.getAttributeTitle(appLayer, serieAttribute),
                     markerConfig: {
                         type: 'circle',
                         size: 4,
@@ -304,7 +276,7 @@ Ext.define("viewer.components.Graph", {
                             if(graphType === 'bar' || graphType === 'column') {
                                 this.setTitle(item.value[0] + ': ' + item.value[1]);
                             } else {
-                                this.setTitle(storeItem.get(me.getAttributeName(appLayer,gco.categoryAttribute)) + ': ' + storeItem.get(me.getAttributeName(appLayer,serieAttribute)));
+                                this.setTitle(storeItem.get(me.getAttributeTitle(appLayer,gco.categoryAttribute)) + ': ' + storeItem.get(me.getAttributeTitle(appLayer,serieAttribute)));
                             }
                         }
                     },
@@ -315,9 +287,9 @@ Ext.define("viewer.components.Graph", {
                 });
             })(serieAttributes[i]);
         }
-        /* 
+        /*
          * The setup for a Theme, we could use this in the future to control the color of the lines/bars
-         * 
+         *
          * Ext.define('Ext.chart.theme.Flamingo', {
             extend: 'Ext.chart.theme.Base',
             constructor: function(config) {
@@ -349,25 +321,25 @@ Ext.define("viewer.components.Graph", {
             {
                 type: 'Numeric',
                 position: 'left',
-                fields: this.getAttributeName(appLayer, gco.serieAttribute),
+                fields: this.getAttributeTitle(appLayer, gco.serieAttribute),
                 label: {
                     renderer: Ext.util.Format.numberRenderer('0,0')
                 },
-                title: this.isArray(gco.serieAttribute) ? '' : this.getAttributeTitle(appLayer,gco.serieAttribute),
+                title: gco.ylabel,
                 grid: true,
                 minimum: 0
             },{
                 type: 'Category',
                 position: 'bottom',
-                fields: [this.getAttributeName(appLayer,gco.categoryAttribute)],
-                title: this.getAttributeTitle(appLayer,gco.categoryAttribute)
+                fields: [this.getAttributeTitle(appLayer,gco.categoryAttribute)],
+                title: gco.xlabel
             }
         ];
         if(graphType === 'bar') {
             axes[0]['position'] = 'bottom';
             axes[1]['position'] = 'left';
         }
-        var a = Ext.create('Ext.chart.Chart', {
+        var chart = Ext.create('Ext.chart.Chart', {
             //theme: 'Flamingo',
             animate: true,
             store: store,
@@ -380,109 +352,12 @@ Ext.define("viewer.components.Graph", {
         // remove placeholder
         graphPanel.remove('placeholderContainer' + configId, true);
         // add graph in placeholder place
-        graphPanel.insert(configId, a);
+        graphPanel.insert(configId, chart);
         // Always select first tab
-        graphPanel.setActiveTab(0);
-    },
-    loadData: function(appLayer) {
-        var featureService = appLayer.featureService;
-        /*
-        var modelName = 'Masdfodel';
-        var visCols = {
-            "AANTAL_HH":true
-        };
-        var attributes = this.viewerController.getAttributesFromAppLayer(appLayer);
-        var attributeList = [];
-        var columns = [];
-        var index = 0;
-        for(var i= 0 ; i < attributes.length ;i++){
-            var attribute = attributes[i];
-            var colName = attribute.alias != undefined ? attribute.alias : attribute.name;
-            if(visCols.hasOwnProperty(colName)){
-                
-                var attIndex = index++;
-                
-                attributeList.push({
-                    name: "c" + attIndex,
-                    type : 'string'
-                });
-                columns.push({
-                    id: "c"+name+ +attIndex,
-                    header:colName,
-                    dataIndex: "c" + attIndex,
-                    flex: 1,
-                    filter: {
-                        xtype: 'textfield'
-                    }
-                });
-            }
+        if(graphPanel.setActiveTab){
+            graphPanel.setActiveTab(0);
         }
-        var name = appLayer.alias;
-        var modelName= name + 'Model';
-        Ext.define(modelName, {
-            extend: 'Ext.data.Model',
-            fields: attributeList
-        });
-        
-        var filter = "";
-        
-        if (appLayer.filter){
-            filter=appLayer.filter.getCQL();
-        }
-        var featureType = "";
-       
-
-        var store = Ext.create('Ext.data.Store', {
-            storeId: name + "Store",
-            pageSize: 10,
-            model: modelName,
-            remoteSort: true,
-            remoteFilter: true,
-            proxy: {
-                type: 'ajax',
-                timeout: 40000,
-                url: appLayer.featureService.getStoreUrl() + "&arrays=1" + featureType + filter,
-                reader: {
-                    type: 'json',
-                    root: 'features',
-                    totalProperty: 'total'
-                },
-                simpleSortMode: true,
-                listeners: {
-                    exception: function(store, response, op) {
-
-                        msg = response.responseText;
-                        if (response.status == 200) {
-                            try {
-                                var j = Ext.JSON.decode(response.responseText);
-                                if (j.message) {
-                                    msg = j.message;
-                                }
-                            } catch (e) {
-                            }
-                        }
-
-                        if (msg == null) {
-                            if (response.timedout) {
-                                msg = "Request timed out";
-                            } else if (response.statusText != null && response.statusText != "") {
-                                msg = response.statusText;
-                            } else {
-                                msg = "Unknown error";
-                            }
-                        }
-
-                        Ext.getCmp(me.name + "mainGrid").getStore().removeAll();
-
-                        Ext.MessageBox.alert("Foutmelding", msg);
-
-                    }
-                }
-            },
-            autoLoad: true
-        });*/
     },
-    
     activateMapClick: function(){
         this.deActivatedTools = this.viewerController.mapComponent.deactivateTools();
         this.toolMapClick.activateTool();
@@ -504,22 +379,19 @@ Ext.define("viewer.components.Graph", {
         if(!configs.length) return null;
         return configs;
     },
-    getAttribute : function (appLayer, attributeId){
+    getAttribute : function (appLayer, attributeName){
         for(var i = 0 ; i < appLayer.attributes.length;i++){
-            if(appLayer.attributes[i].id === attributeId){
+            if(appLayer.attributes[i].name === attributeName){
                 return appLayer.attributes[i];
             }
         }
         return null;
     },
-    getAttributeName: function(appLayer, attributeId) {
-        return this.getAttributeTitleName(appLayer, attributeId, false);
+    getAttributeTitle: function(appLayer, attributeName) {
+        return this.getAttributeTitleName(appLayer, attributeName, true);
     },
-    getAttributeTitle: function(appLayer, attributeId) {
-        return this.getAttributeTitleName(appLayer, attributeId, true);
-    },
-    getAttributeTitleName: function(appLayer, attributeId, allowAlias) {
-        var attributes = this.wrapArray(attributeId),
+    getAttributeTitleName: function(appLayer, attributeName, allowAlias) {
+        var attributes = this.wrapArray(attributeName),
             attributeTitles = [],
             attribute = null;
         for(var i = 0; i < attributes.length; i++) {
