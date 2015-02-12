@@ -134,6 +134,7 @@ public class ProxyActionBean implements ActionBean {
         // and an attacker knows the URL of the IP-whitelist protected service 
         // this may allow the attacker to request maps from that service if that
         // service does not verify IP using the X-Forwarded-For header we send.
+
         if(ArcIMSService.PROTOCOL.equals(mode)) {
             return proxyArcIMS();
         } else if(WMSService.PROTOCOL.equals(mode)){
@@ -213,6 +214,7 @@ public class ProxyActionBean implements ActionBean {
     }
 
     private Resolution proxyWMS() throws IOException, URISyntaxException{
+
         HttpServletRequest request = getContext().getRequest();
         
         if(!"GET".equals(request.getMethod())) {
