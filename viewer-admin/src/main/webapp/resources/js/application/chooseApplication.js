@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (C) 2012-2013 B3Partners B.V.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -38,10 +38,12 @@ Ext.onReady(function(){
     });
 
     var store = Ext.create('Ext.data.Store', {
-        pageSize: 10,
+        pageSize: 10,       
         model: 'TableRow',
         remoteSort: true,
         remoteFilter: true,
+        sorters: 'name',
+        autoLoad: true,
         proxy: {
             type: 'ajax',
             url: gridurl,
@@ -97,26 +99,11 @@ Ext.onReady(function(){
                 hideable: false,
                 menuDisabled: true,
                 renderer: function(value, style, row) {
-                    var data = row.data;
-
-                    if(Ext.urlDecode(window.location.search.substring(1)).hasOwnProperty("debug") && Ext.urlDecode(window.location.search.substring(1)).debug == "true"){
-                        return Ext.String.format('<a href="#" onclick="return makeWorkVersion({0});">Maak werkversie</a>', value)
-                            + " | " + Ext.String.format('<a href="'+ editurl + '&application=' +'{0} ">Activeren</a>', value) +
-                                ' | ' +
-                                Ext.String.format('<a href="#" onclick="return removeObject({0});">Verwijderen</a>', value);
-                    }else{
-                        if(data.published == "Ja"){
-                            return Ext.String.format('<a href="#" onclick="return makeWorkVersion({0});">Maak werkversie</a>', value)+
-                                ' | ' +
-                                Ext.String.format('<a href="#" onclick="return removeObject({0});">Verwijderen</a>', value);;
-                        }else{
-                            return Ext.String.format('<a href="'+ editurl + '&application=' +'{0} ">Activeren</a>', value) +
-                                ' | ' +
-                                Ext.String.format('<a href="#" onclick="return removeObject({0});">Verwijderen</a>', value);
-                        }
-                    }
-                },
-                sortable: false
+                    return Ext.String.format('<a href="#" onclick="return makeWorkVersion({0});">Maak werkversie</a>', value)                   
+                        + " | " + Ext.String.format('<a href="'+ editurl + '&application=' +'{0} ">Activeren</a>', value) +
+                            ' | ' +
+                            Ext.String.format('<a href="#" onclick="return removeObject({0});">Verwijderen</a>', value);
+                }
             }
         ],
         bbar: Ext.create('Ext.PagingToolbar', {
@@ -125,20 +112,14 @@ Ext.onReady(function(){
             displayMsg: 'Applicaties {0} - {1} of {2}',
             emptyMsg: "Geen applicaties weer te geven"
         }),
-        plugins: [
+        plugins: [ 
             Ext.create('Ext.ux.grid.GridHeaderFilters', {
                 enableTooltip: false
             })
         ],
-        renderTo: 'grid-container',
-        listeners: {
-            afterrender: function(grid) {
-                // Default sort on first column
-                grid.columns[0].setSortState('ASC');
-            }
-        }
+        renderTo: 'grid-container'
     }));
-
+    
 });
 
 function editObject(objId) {
@@ -150,7 +131,7 @@ function editObject(objId) {
 
 function removeObject(objId) {
     var appRecord = Ext.getCmp('editGrid').store.getById(objId);
-
+    
     Ext.MessageBox.show({
         title: "Bevestiging",
         msg: "Weet u zeker dat u de applicatie " + appRecord.get("name") + " wilt verwijderen?",
@@ -162,12 +143,12 @@ function removeObject(objId) {
                 gridCmp.getSelectionModel().select(gridCmp.getStore().find('id', objId));
             }
         }
-    });
+    });  
 
     return false;
 }
 
-function makeWorkVersion(objId){
+function makeWorkVersion(objId){     
     var appRecord = Ext.getCmp('editGrid').store.getById(objId);
     Ext.MessageBox.show({
         title: 'Werkversie applicatie',
@@ -184,7 +165,7 @@ function makeWorkVersion(objId){
                 frm.submit();
             }
         }
-    });
+    });  
     return false;
 }
 

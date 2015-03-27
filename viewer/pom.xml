@@ -9,7 +9,7 @@
     <parent>
         <groupId>org.flamingo-mc</groupId>
         <artifactId>flamingo-mc</artifactId>
-        <version>4.4.9-SNAPSHOT</version>
+        <version>4.5.1-SNAPSHOT</version>
     </parent>
     <name>viewer</name>
 
@@ -277,9 +277,6 @@
                                 <param>${viewerhtml.path}/common/overrides.js</param>
                                 <param>${viewerhtml.path}/common/ScreenPopup.js</param>
                                 <param>${viewerhtml.path}/common/CQLFilterWrapper.js</param>
-                                <param>${viewerhtml.path}/common/MobileSlider.js</param>
-                                <param>${viewerhtml.path}/common/Combobox.js</param>
-                                <param>${viewerhtml.path}/common/MobileCombobox.js</param>
                                 <!-- Server side Ajax Wrappers -->
                                 <param>${viewerhtml.path}/common/ajax/ServiceInfo.js</param>
                                 <param>${viewerhtml.path}/common/ajax/CSWClient.js</param>

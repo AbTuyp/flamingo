@@ -30,6 +30,7 @@ Ext.define("viewer.viewercontroller.controller.Tool",{
         ZOOMIN_BOX                 : 2,
         ZOOMOUT_BOX                : 3,
         ZOOMOUT_BUTTON             : 6,
+        ZOOM                       : 7,
         PAN                        : 4,
         SUPERPAN                   : 5,
         GET_FEATURE_INFO           : 10,
@@ -52,6 +53,7 @@ Ext.define("viewer.viewercontroller.controller.Tool",{
     tool: null,
     mapComponent: null,
     events: null,
+    blocksDefaultTool:null,
     config :{
         id: null,
         frameworkObject: null,
@@ -67,7 +69,9 @@ Ext.define("viewer.viewercontroller.controller.Tool",{
 
     constructor: function (config){
         this.initConfig(config);
+        viewer.viewercontroller.controller.Tool.superclass.constructor.call(this, config);
         this.events = [];
+        this.blocksDefaultTool = true;
         return this;
     },
     /**
@@ -75,6 +79,9 @@ Ext.define("viewer.viewercontroller.controller.Tool",{
      * @deprecated use getFrameworkObject
      */
     getFrameworkTool : function(){
+        return this.frameworkObject;
+    },
+    getFrameworkObject: function() {
         return this.frameworkObject;
     },
     /**
@@ -104,5 +111,8 @@ Ext.define("viewer.viewercontroller.controller.Tool",{
      */
     deactivate: function(){
         Ext.Error.raise({msg: "Tool.deactivate() not implemented! Must be implemented in sub-class"});
+    },
+    getVisible : function(){
+        return this.config.visible;
     }
 });
