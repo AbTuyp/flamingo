@@ -58,9 +58,11 @@ Ext.define("viewer.components.Legend", {
         titlebarIcon: "",
         tooltip: "",
         margin: "0px",
-        showBackground: false
+        showBackground: false,
+        infoText: ""
     },
     constructor: function (conf){
+        conf.details.useExtLayout = true;
         viewer.components.Legend.superclass.constructor.call(this, conf);
         this.initConfig(conf);
         var me = this;
@@ -74,7 +76,6 @@ Ext.define("viewer.components.Legend", {
     padding: {0};\
     width: 100%;\
     height: 100%;\
-    overflow: auto;\
 }\
 \
 .legend .layer {\
@@ -95,36 +96,80 @@ Ext.define("viewer.components.Legend", {
     line-height: 31px; /* center single-line label vertically to align to image */\
     white-space: nowrap;\
 }";
-        css = Ext.String.format(css, this.margin);
+        css = Ext.String.format(css, this.config.margin);
         Ext.util.CSS.createStyleSheet(css, "legend");
         
         var title = "";
-        if(this.config.title && !this.viewerController.layoutManager.isTabComponent(this.name)) title = this.config.title;
+        if(this.config.title && !this.config.viewerController.layoutManager.isTabComponent(this.name) && !this.config.isPopup) title = this.config.title;
         var tools = [];
-        // If no config is present for 'showHelpButton' or 'showHelpButton' is "true" we will show the help button
-        if(this.config && (!this.config.hasOwnProperty('showHelpButton') || this.config.showHelpButton !== "false")) {
+        // Only if 'showHelpButton' configuration is present and not set to "false" we will show the help button
+        if(this.config && this.config.hasOwnProperty('showHelpButton') && this.config.showHelpButton !== "false") {
             tools = [{
                 type:'help',
                 handler: function(event, toolEl, panel){
-                    me.viewerController.showHelp(me.config);
+                    me.config.viewerController.showHelp(me.config);
                 }
             }];
         }
-        this.panel = Ext.create('Ext.panel.Panel', {
-            renderTo: this.getContentDiv(),
+        
+        this.renderButton();
+
+        this.legendContainer = document.createElement('div');
+        this.legendContainer.className = 'legend';
+        document.body.appendChild(this.legendContainer);
+
+        var config = {
             title: title,
             height: "100%",
-            html: '<div id="' + this.name + 'legendContainer" class="legend"></div>',
             tools: tools
-        });
+        };
+
+        if(this.config.infoText) {
+            config.layout = {
+                type: 'vbox',
+                align: 'stretch'
+            };
+            config.items = [{
+                xtype: 'container',
+                html: this.config.infoText,
+                padding: '0 0 5 0'
+            },{
+                xtype: 'container',
+                contentEl: this.legendContainer,
+                flex: 1,
+                autoScroll: true
+            }];
+        } else {
+            config.contentEl = this.legendContainer;
+            config.autoScroll = true;
+        }
+
+        this.panel = Ext.create('Ext.panel.Panel', config);
+
+        var parent = this.getContentContainer();
+        parent.add(this.panel);
         
-        this.legendContainer = document.getElementById(this.name + 'legendContainer');
-        
-        this.viewerController.addListener(viewer.viewercontroller.controller.Event.ON_LAYERS_INITIALIZED, this.onLayersInitialized,this);
-        this.viewerController.addListener(viewer.viewercontroller.controller.Event.ON_SELECTEDCONTENT_CHANGE,this.onSelectedContentChange,this);
-        this.viewerController.mapComponent.getMap().addListener(viewer.viewercontroller.controller.Event.ON_LAYER_VISIBILITY_CHANGED,this.onLayerVisibilityChanged,this);
+        this.config.viewerController.addListener(viewer.viewercontroller.controller.Event.ON_LAYERS_INITIALIZED, this.onLayersInitialized,this);
+        this.config.viewerController.addListener(viewer.viewercontroller.controller.Event.ON_SELECTEDCONTENT_CHANGE,this.onSelectedContentChange,this);
+        this.config.viewerController.mapComponent.getMap().addListener(viewer.viewercontroller.controller.Event.ON_LAYER_VISIBILITY_CHANGED,this.onLayerVisibilityChanged,this);
         
         return this;
+    },
+    
+    renderButton: function() {
+        var me = this;
+        if(!this.config.isPopup) {
+            return;
+        }
+        viewer.components.Legend.superclass.renderButton.call(this,{
+            text: me.config.title,
+            icon: me.config.iconUrl,
+            tooltip: me.config.tooltip,
+            label: me.config.label,
+            handler: function() {
+                me.popup.show();
+            }
+        });
     },
     
     getExtComponents: function() {
@@ -190,16 +235,18 @@ Ext.define("viewer.components.Legend", {
 
         var index = 0;
         
-        this.viewerController.traverseSelectedContent(
+        this.config.viewerController.traverseSelectedContent(
             Ext.emptyFn,
             function(appLayer) {
-                me.legends[appLayer.id] = {
-                    order: index++,
-                    waitingForInfo: false,
-                    element: null
-                };
-                
-                me.createLegendForAppLayer(appLayer);
+                if(appLayer && appLayer.id) {
+                    me.legends[appLayer.id] = {
+                        order: index++,
+                        waitingForInfo: false,
+                        element: null
+                    };
+
+                    me.createLegendForAppLayer(appLayer);
+                }
             }
         );
     },
@@ -212,7 +259,7 @@ Ext.define("viewer.components.Legend", {
     createLegendForAppLayer: function(appLayer) {
         var me = this;
 
-        if(!this.showBackground && appLayer.background 
+        if(!this.config.showBackground && appLayer.background 
         || !appLayer.checked) {
             return;
         }
@@ -231,7 +278,7 @@ Ext.define("viewer.components.Legend", {
         // starvation of HTTP requests for map requests which should have 
         // priority
         
-        this.viewerController.getLayerLegendInfo(
+        this.config.viewerController.getLayerLegendInfo(
             appLayer,
             function(appLayer, legendInfo) {
                 me.onLayerLegendInfo(appLayer, legendInfo);
@@ -285,31 +332,26 @@ Ext.define("viewer.components.Legend", {
         divLayer.appendChild(divName);
 
         var img, divImage;        
-        for(var i in legendInfo.parts) {
-            (function() { // IIFE needed for img.onload handler to reference divLabel
+        Ext.Array.each(legendInfo.parts, function(part) {
+            divImage = document.createElement("div");
+            var divLabel = document.createElement("div");
 
-                var part = legendInfo.parts[i];
+            img = document.createElement("img");
+            img.src = part.url;
+            img.onload = function() {
+                //console.log("legend image for label " + divLabel.innerHTML + " loaded, height " + this.height);
+                divLabel.style.lineHeight = (this.height + 4) + "px";
+            };
 
-                divImage = document.createElement("div");
-                var divLabel = document.createElement("div");
-
-                img = document.createElement("img");
-                img.src = part.url;
-                img.onload = function() {
-                    //console.log("legend image for label " + divLabel.innerHTML + " loaded, height " + this.height);
-                    divLabel.style.lineHeight = (this.height + 4) + "px";
-                };
-
-                divImage.className = "image";
-                divImage.appendChild(img);
-                divLayer.appendChild(divImage);
-                if (part.label && legendInfo.parts.length > 1){
-                    divLabel.className = "label";
-                    divLabel.innerHTML = Ext.htmlEncode(part.label);
-                    divLayer.appendChild(divLabel);                        
-                }
-            }());
-        }
+            divImage.className = "image";
+            divImage.appendChild(img);
+            divLayer.appendChild(divImage);
+            if (part.label && legendInfo.parts.length > 1){
+                divLabel.className = "label";
+                divLabel.innerHTML = Ext.htmlEncode(part.label);
+                divLayer.appendChild(divLabel);
+            }
+        });
         Ext.fly(divLayer).setVisibilityMode(Ext.Element.DISPLAY);
         return divLayer;
     },

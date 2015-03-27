@@ -21,6 +21,7 @@ import javax.persistence.NoResultException;
 import javax.servlet.http.HttpServletRequest;
 import nl.b3p.viewer.config.services.*;
 import nl.b3p.viewer.config.app.*;
+import nl.b3p.viewer.util.DB;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -219,8 +220,14 @@ public class Authorizations {
         Set<String> roles = (Set<String>)request.getAttribute(ROLES_ATTRIBUTE);
         
         if(roles == null) {
-            roles = new HashSet<String>(Stripersist.getEntityManager().createQuery("select g.name from User u join u.groups g where u.username = :username")
-                .setParameter("username", request.getRemoteUser()).getResultList());
+            roles = new HashSet<String>();
+            List<String> groups = Stripersist.getEntityManager().createQuery("select name FROM Group").getResultList();
+            for (String group : groups) {
+                if(request.isUserInRole(group)){
+                    roles.add(group);
+                }
+            }
+            
             request.setAttribute(ROLES_ATTRIBUTE, roles);
         }
         return roles;
@@ -454,13 +461,18 @@ public class Authorizations {
             List<Layer> layers = l.getService().loadLayerTree();
             if(!layers.isEmpty()) {
                 // Prevent n+1 queries
-                Stripersist.getEntityManager().createQuery("from Layer l "
-                        + "left join fetch l.readers "
-                        + "left join fetch l.writers "
-                        + "where l in (:layers)")
-                        .setParameter("layers", layers)
-                        .getResultList();
-            }            
+                int i = 0;
+                do {
+                    List<Layer> subList = layers.subList(i, Math.min(layers.size(), i+DB.MAX_LIST_EXPRESSIONS));
+                    Stripersist.getEntityManager().createQuery("from Layer l "
+                            + "left join fetch l.readers "
+                            + "left join fetch l.writers "
+                            + "where l in (:layers)")
+                            .setParameter("layers", subList)
+                            .getResultList();
+                    i += subList.size();
+                } while(i < layers.size());
+            }
             
             walkLayer(l.getService().getTopLayer(), EVERYBODY, EVERYBODY, cache.protectedLayers);
                          
@@ -546,23 +558,8 @@ public class Authorizations {
             cache.protectedAppLayers = new HashMap();
                         
             Application.TreeCache treeCache = app.loadTreeCache();
-            
-            // Prevent n+1 queries for each level            
-            Stripersist.getEntityManager().createQuery("from Level l "
-                    + "left join fetch l.readers "
-                    + "where l in (:levels) ")
-                    .setParameter("levels", treeCache.getLevels())
-                    .getResultList();            
-
-            if(!treeCache.getApplicationLayers().isEmpty()) {
-                // Prevent n+1 queries for each ApplicationLayer            
-                Stripersist.getEntityManager().createQuery("from ApplicationLayer al "
-                        + "left join fetch al.readers "
-                        + "left join fetch al.writers "
-                        + "where al in (:alayers) ")
-                        .setParameter("alayers", treeCache.getApplicationLayers())
-                        .getResultList();
-            }            
+            treeCache.initializeLevels("left join fetch l.readers");
+            treeCache.initializeApplicationLayers("left join fetch al.readers left join fetch al.writers");
             
             walkLevel(app.getRoot(), EVERYBODY, cache, treeCache);
 

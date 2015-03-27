@@ -21,68 +21,36 @@
  */
 
 Ext.define('select.TreeNode', {
-    extend: 'Ext.data.Model',
+    extend: 'Ext.data.TreeModel',
     fields: [
-        {name: 'id', type: 'string'},
-        {name: 'children', type: 'array'},
+        {name: 'nodeid', type: 'string'},
+        // {name: 'children', type: 'array'},
         {name: 'name', type: 'string'},
         {name: 'type',  type: 'string'},
         {name: 'status', type: 'string'},
         {name: 'class', type: 'string'},
         {name: 'parentid', type: 'string'},
         {name: 'isLeaf', type: 'boolean'},
-        {name: 'checkedlayers', type: 'array'},
         // Text is used by tree, mapped to name
-        {name: 'text', type: 'string', mapping: 'name'}
-    ],
-    get: function(fieldName) {
-        var nodeType = '';
-        if(fieldName == "icon") {
-            nodeType = this.get('type');
-            if(nodeType == "category" || nodeType == "level" || nodeType == "cswresult") return contextPath + '/viewer-html/components/resources/images/selectionModule/folder.png';
-            if(nodeType == "maplevel") return contextPath + '/viewer-html/components/resources/images/selectionModule/maplevel.png';
-            if(nodeType == "layer" || nodeType == "appLayer") return contextPath + '/viewer-html/components/resources/images/selectionModule/map.png';
-            if(nodeType == "service") return contextPath + '/viewer-html/components/resources/images/selectionModule/serviceok.png';
-        }
-        if(fieldName == "leaf") {
-            return this.get('isLeaf');
-        }
-        // Return default value, taken from ExtJS source
-        return this[this.persistenceProperty][fieldName];
-    }
-});
-
-// Override van TreeStore to fix load function, used to refresh tree node
-Ext.define('Ext.ux.b3p.TreeStore', {
-    extend: 'Ext.data.TreeStore',
-    load: function(options) {
-        options = options || {};
-        options.params = options.params || {};
-        var me = this,
-            node = options.node || me.tree.getRootNode(),
-            root;
-        if (!node) {
-            node = me.setRootNode({
-                expanded: true
-            });
-        }
-        if (me.clearOnLoad) {
-            node.removeAll(false);
-        }
-        Ext.applyIf(options, {
-            node: node
-        });
-        options.params[me.nodeParam] = node ? node.getId() : 'root';
-        if (node) {
-            node.set('loading', true);
-        }
-        return me.callParent([options]);
-    }
+        {name: 'text', type: 'string', mapping:'name'},
+        // Added convert function to icon
+        {name: 'icon', type: 'string', convert: function(fieldName, record) {
+            var nodeType = record.get('type');
+            if(nodeType === "category" || nodeType === "level" || nodeType === "cswresult") return contextPath + '/viewer-html/components/resources/images/selectionModule/folder.png';
+            if(nodeType === "maplevel") return contextPath + '/viewer-html/components/resources/images/selectionModule/maplevel.png';
+            if(nodeType === "layer" || nodeType === "appLayer") return contextPath + '/viewer-html/components/resources/images/selectionModule/map.png';
+            if(nodeType === "service") return contextPath + '/viewer-html/components/resources/images/selectionModule/serviceok.png';    
+        }},
+        // leaf mapped to isLeaf
+        {name: 'leaf', type: 'boolean', mapping: 'isLeaf'}
+        // {name: 'checkedlayers', type: 'array'},
+        
+    ]
 });
 
 Ext.define ("viewer.components.SelectionModule",{
     extend: "viewer.components.Component",
-    
+
     // component specific config
     moveRightIcon: '',
     moveLeftIcon: '',
@@ -146,36 +114,36 @@ Ext.define ("viewer.components.SelectionModule",{
         showBackgroundLevels:null,
         showCswUrl: null
     },
-    constructor: function (conf) {     
+    constructor: function (conf) {
         //set defaults
         var minwidth = 600;
         if(conf.details.width < minwidth || !Ext.isDefined(conf.details.width)) conf.details.width = minwidth;
         if (Ext.isEmpty(conf.selectGroups)){
-            conf.selectGroups=true;
+            conf.selectGroups = true;
         }if (Ext.isEmpty(conf.selectLayers)){
-            conf.selectLayers=true;
+            conf.selectLayers = true;
         }if (Ext.isEmpty(conf.selectOwnServices)){
-            conf.selectOwnServices=true;
+            conf.selectOwnServices = true;
         } if(Ext.isEmpty(conf.selectCsw)){
             conf.selectCsw = true;
         } if(Ext.isEmpty(conf.showWhenOnlyBackground)){
             conf.showWhenOnlyBackground = true;
         } if(Ext.isEmpty(conf.alwaysShow)){
-            conf.alwaysShow = false;        
+            conf.alwaysShow = false;
         } if(Ext.isEmpty(conf.showBackgroundLevels)){
             conf.showBackgroundLevels = false;
         }
         // call constructor and init config
         viewer.components.SelectionModule.superclass.constructor.call(this, conf);
-        this.initConfig(conf);        
+        this.initConfig(conf);
         this.renderButton();
         // if there is no selected content, show selection module
         var me = this;
-        this.viewerController.addListener(viewer.viewercontroller.controller.Event.ON_COMPONENTS_FINISHED_LOADING,function(){
-            if(this.viewerController.app.selectedContent.length == 0 ){
+        this.config.viewerController.addListener(viewer.viewercontroller.controller.Event.ON_COMPONENTS_FINISHED_LOADING,function(){
+            if(this.config.viewerController.app.selectedContent.length == 0 ){
                 me.openWindow();
             }else{
-                if(this.showWhenOnlyBackground && this.selectedContentHasOnlyBackgroundLayers()){
+                if(this.config.showWhenOnlyBackground && this.selectedContentHasOnlyBackgroundLayers()){
                     me.openWindow();
                 }
             }
@@ -185,15 +153,15 @@ Ext.define ("viewer.components.SelectionModule",{
     renderButton: function() {
         var me = this;
         this.superclass.renderButton.call(this,{
-            text: me.title,
-            icon: me.titlebarIcon,
-            tooltip: me.tooltip,
-            label: me.label,
+            text: me.config.title,
+            icon: me.config.titlebarIcon,
+            tooltip: me.config.tooltip,
+            label: me.config.label,
             handler: function() {
                 me.openWindow();
             }
         });
-        
+
     },
     openWindow: function() {
         var me = this;
@@ -242,30 +210,28 @@ Ext.define ("viewer.components.SelectionModule",{
         // Show active left panel (based on checked radio boxes / only option)
         me.showActiveLeftPanel();
         // apply a scroll fix
-        me.applyTreeScrollFix();
-        me.applyHorizontalScrolling();
+        me.resizeTrees();
         // add listeners to the popupwin to hide and show tree containers (which would otherwise remain visible)
         me.popup.popupWin.addListener('hide', me.hideTreeContainers);
         me.popup.popupWin.addListener('show', me.showTreeContainers);
         me.popup.popupWin.addListener("dragstart", me.hideTreeContainers);
         me.popup.popupWin.addListener("dragend", me.showTreeContainers);
-        me.popup.popupWin.addListener("resize", me.applyTreeScrollFix, me);
-        me.popup.popupWin.addListener("resize", me.applyHorizontalScrolling, me);
+        me.popup.popupWin.addListener("resize", me.resizeTrees, me);
         // set rendered to true so this function won't be called again
         me.rendered = true;
     },
     // helper function to check if selected content has only background layers
     selectedContentHasOnlyBackgroundLayers : function (){
-        var sc = this.viewerController.app.selectedContent;
+        var sc = this.config.viewerController.app.selectedContent;
         for( var i = 0 ; i < sc.length ; i++){
             var item = sc[i];
             if(item.type == "level"){
-                var level = this.viewerController.app.levels[item.id];
+                var level = this.config.viewerController.app.levels[item.id];
                 if(!level.background){
                     return false;
                 }
             }else{
-                var layer = this.viewerController.app.appLayers[item.id];
+                var layer = this.config.viewerController.app.appLayers[item.id];
                 if(!layer.background){
                     return false;
                 }
@@ -287,7 +253,7 @@ Ext.define ("viewer.components.SelectionModule",{
             treeContainer.style.display = 'block';
         });
     },
-    
+
     getActiveTreePanels: function() {
         var me = this;
         var panels = [];
@@ -305,17 +271,17 @@ Ext.define ("viewer.components.SelectionModule",{
         }
         return panels;
     },
-    
+
     getActiveTreePanelIds: function() {
         var me = this;
         var panelIds = [];
         var activePanels = me.getActiveTreePanels();
-        for(var i in activePanels) {
+        for(var i = 0; i < activePanels.length; i++) {
             panelIds.push(activePanels[i].id);
         }
         return panelIds;
     },
-    
+
     /**
      * Show active left panel (initially).
      * When multiple options are avaiable, show first left panel
@@ -324,13 +290,13 @@ Ext.define ("viewer.components.SelectionModule",{
     showActiveLeftPanel: function() {
         var me = this,
             availableOptions = [];
-        
+
         // First add all available options to array
         if(me.config.selectGroups) availableOptions.push({ id: 'radioApplication', checked: true });
         if(me.config.selectLayers) availableOptions.push({ id: 'radioRegistry', checked: true });
         if(me.config.selectOwnServices) availableOptions.push({ id: 'radioCustom', checked: true });
         if(me.config.selectCsw) availableOptions.push({ id: 'radioCSW', checked: true });
-        
+
         // If there is only one option, show that option
         if(availableOptions.length === 1) {
             me.handleSourceChange(availableOptions[0].id, availableOptions[0].checked);
@@ -351,6 +317,9 @@ Ext.define ("viewer.components.SelectionModule",{
     getActiveTreeType: function() {
         var panels= this.treePanels;
         for(var key in panels){
+            if(!panels.hasOwnProperty(key)) {
+                continue;
+            }
             var p = panels[key];
             if(p.treePanel && p.treePanel.getId() === this.activeTree.getId()){
                 return key;
@@ -358,81 +327,31 @@ Ext.define ("viewer.components.SelectionModule",{
         }
         return null;
     },
-    
+
     /**
      *  Apply fixes to the trees for ExtJS scrolling issues
      */
-    applyTreeScrollFix: function() {
+    resizeTrees: function() {
         var me = this;
         var activePanels = me.getActiveTreePanels();
-        for(var i in activePanels) {
-            activePanels[i].getView().getEl().setStyle({
-                overflow: 'auto',
-                overflowX: 'auto'
-            });
-            // From ext-all-debug, r77661 & r77663
-            // Seems to recalculate body and applies correct heights so scrollbars can be shown
-            activePanels[i].getView().panel.doComponentLayout();
-            activePanels[i].getView().panel.getLayout().layout();
-        }
-    },
-     applyHorizontalScrolling: function() {
-        var panels = this.getActiveTreePanels();
-        for(var i = 0 ; i < panels.length ;i++){
-            var view = panels[i];
-            var c = view.container;
-            var e = view.el;
-            var max = 0;
-            Ext.each(e.query('.x-grid-cell-inner'), function(el) {
-                el = Ext.get(el);
-                var size = el.getPadding('lr');
-                Ext.each(el.dom.childNodes, function(el2) {
-                    if (el2.nodeType === 3) { // 3 === Node.TEXT_NODE
-                        size += 6 + el.getTextWidth(el2.nodeValue);
-                    } else {
-                        var _el2 = Ext.get(el2);
-                        if ((Ext.isIE8 || Ext.isIE9) && el2.nodeName.toUpperCase() === 'SPAN') {
-                            // The SPAN inside the layername has the same width as the parent in IE8|9
-                            // so we use the getTextWidth function of Ext to compute width of element
-                            size += el.getTextWidth(el2.innerText);
-                        } else {
-                            size += (_el2.getWidth() + _el2.getMargin('lr'));
-                        }
-                    }
-                });
-                max = Math.max(max, size);
-            });
-            max += c.getPadding('lr') + 5; // Add some extra padding to have some whitespace on the right
-            if (c.getWidth() < max) {
-                c.dom.style.overflowX = 'auto';
-                if (Ext.isIE8) {
-                    // IE8 is behaving strange and cannot find table with e.down('table') so we search mannually
-                    var tables = e.dom.getElementsByTagName('table');
-                    for (var x = 0; x < tables.length; x++) {
-                        if ((' ' + tables[x].className + ' ').indexOf(' x-grid-table ') > -1) {
-                            tables[x].style.width = max + 'px';
-                        }
-                    }
-                } else {
-                    e.down('table').setWidth(max);
-                }
-            }
+        for(var i = 0; i < activePanels.length; i++) {
+            activePanels[i].getView().panel.updateLayout();
         }
     },
     initViewerControllerData: function() {
         var me = this;
         // We make a cloned reference, so we can easily edit this array and merge it to the original after clicking 'Ok'
-        me.selectedContent = Ext.clone(this.viewerController.app.selectedContent);
-        me.appLayers = this.viewerController.app.appLayers;
-        me.levels = this.viewerController.app.levels;
-        me.services = this.viewerController.app.services;
-        me.rootLevel = this.viewerController.app.rootLevel;
+        me.selectedContent = Ext.clone(this.config.viewerController.app.selectedContent);
+        me.appLayers = this.config.viewerController.app.appLayers;
+        me.levels = this.config.viewerController.app.levels;
+        me.services = this.config.viewerController.app.services;
+        me.rootLevel = this.config.viewerController.app.rootLevel;
     },
 
     loadCustomService: function() {
         var me = this;
         Ext.getCmp("selectionModuleTreeContentContainer").setLoading("Zoeken...");
-        
+
         var protocol = '', url = '', q = '';
         if(me.customServiceType == 'csw') {
             url = Ext.getCmp('cswServiceUrlTextfield').getValue();
@@ -442,10 +361,10 @@ Ext.define ("viewer.components.SelectionModule",{
                 q: q
             });
             var advancedSearch = Ext.getCmp('advancedSearchQuery').getValue();
-            if(this.advancedFilter && ( !Ext.getCmp("cswAdvancedSearchField").collapsed || this.alwaysMatch)){
+            if(this.config.advancedFilter && ( !Ext.getCmp("cswAdvancedSearchField").collapsed || this.config.alwaysMatch)){
                 csw.setActionbeanUrl(actionBeans["advancedcsw"]);
                 csw.config["advancedString"] = advancedSearch;
-                csw.config["advancedProperty"] = this.advancedValue;
+                csw.config["advancedProperty"] = this.config.advancedValue;
                 csw.config["application"] = appId;
                 csw.loadInfo(
                     function(response) {
@@ -457,7 +376,7 @@ Ext.define ("viewer.components.SelectionModule",{
                             var  result = results[i];
                             foundIds.push(result.id);
                         }
-                        
+
                         var levels = response.children;
                         var descriptions = response.descriptions;
                         var levelsToShow = new Array();
@@ -508,45 +427,74 @@ Ext.define ("viewer.components.SelectionModule",{
                     Ext.getCmp("selectionModuleTreeContentContainer").setLoading(false);
                 }
             );
-        }        
+        }
     },
     initInterface: function() {
         var me = this;
         var radioControls = [];
         // Add only if config option is set to true
-        if(me.config.selectGroups) radioControls.push({id: 'radioApplication', checked: true, name: 'layerSource', boxLabel: me.config.hasOwnProperty('labelGroups') ? me.config.labelGroups : 'Kaart', listeners: {change: function(field, newval) {me.handleSourceChange(field.id, newval)}}});
+        if(me.config.selectGroups) {
+            radioControls.push({
+                id: 'radioApplication',
+                checked: true,
+                name: 'layerSource',
+                boxLabel: me.config.hasOwnProperty('labelGroups') ? me.config.labelGroups : 'Kaart',
+                listeners: {change: function(field, newval) {me.handleSourceChange(field.id, newval)}}
+            });
+        }
         // Add only if config option is set to true, if this is the first that is added (so the previous was not added) set checked to true
-        if(me.config.selectLayers) radioControls.push({id: 'radioRegistry', checked: (radioControls.length === 0), name: 'layerSource', boxLabel: me.config.hasOwnProperty('labelLayers') ? me.config.labelLayers : 'Kaartlaag', listeners: {change: function(field, newval) {me.handleSourceChange(field.id, newval)}}});
+        if(me.config.selectLayers) {
+            radioControls.push({
+                id: 'radioRegistry',
+                checked: (radioControls.length === 0),
+                name: 'layerSource',
+                boxLabel: me.config.hasOwnProperty('labelLayers') ? me.config.labelLayers : 'Kaartlaag',
+                listeners: {change: function(field, newval) {me.handleSourceChange(field.id, newval)}}
+            });
+        }
         // Add only if config option is set to true, if this is the first that is added (so the previous was not added) set checked to true
         if(me.config.selectOwnServices) {
-            radioControls.push({id: 'radioCustom', name: 'layerSource', checked: (radioControls.length === 0), boxLabel: me.config.hasOwnProperty('labelOwnServices') ? me.config.labelOwnServices : 'Eigen service', listeners: {change: function(field, newval) {me.handleSourceChange(field.id, newval)}}});
+            radioControls.push({
+                id: 'radioCustom',
+                name: 'layerSource',
+                checked: (radioControls.length === 0),
+                boxLabel: me.config.hasOwnProperty('labelOwnServices') ? me.config.labelOwnServices : 'Eigen service',
+                listeners: {change: function(field, newval) {me.handleSourceChange(field.id, newval)}}
+            });
         }
         if(me.config.selectCsw){
-            radioControls.push({id: 'radioCSW', name: 'layerSource', checked: (radioControls.length === 0), boxLabel: me.config.hasOwnProperty('labelCsw') ? me.config.labelCsw : 'CSW service', listeners: {change: function(field, newval) {me.handleSourceChange(field.id, newval)}}});
+            radioControls.push({
+                id: 'radioCSW',
+                name:'layerSource',
+                checked: (radioControls.length === 0),
+                boxLabel: me.config.hasOwnProperty('labelCsw') ? me.config.labelCsw : 'CSW service',
+                listeners: {change: function(field, newval) {me.handleSourceChange(field.id, newval)}}
+            });
         }
-        
+
         // If there is only 1 control, do not add any
         if(radioControls.length === 1) {
             radioControls = [];
         }
-        
+
         // minimal interface, just tree container and save/cancel buttons
         var items = [{
             xtype: 'container',
             flex: 1,
-            width: '100%',
-            html: '<div id="treeSelectionContainer" style="width: 100%; height: 100%;"></div>',
-            id: 'selectionModuleTreeContentContainer'
+            // width: '100%',
+            // html: '<div id="treeSelectionContainer" style="width: 100%; height: 100%;"></div>',
+            id: 'selectionModuleTreeContentContainer',
+            layout: 'fit'
         },
         {
             // Form above the trees with radiobuttons and textfields
             xtype: 'form',
             layout: {
-                type:'hbox',
-                pack:'end'
+                type:'hbox'
             },
             items: [
-                    {xtype:"label", text:"Tip: toevoegen kaarten kan ook door dubbelklikken."},
+                    {xtype:"label", text:"Tip: toevoegen kaarten kan ook door dubbelklikken.", margin: '3 0 0 0'},
+                    {xtype:'tbfill'},
                     {xtype: 'button', text: 'Annuleren', handler: function() {
                         me.cancelSelection();
                     }},
@@ -554,8 +502,8 @@ Ext.define ("viewer.components.SelectionModule",{
                         me.saveSelection();
                     }}
             ],
-            height: 35,
-            padding: '5px',
+            // height: 35,
+            padding: 5,
             border: 0,
             id: 'selectionModuleSaveFormContainer'
         }];
@@ -563,62 +511,53 @@ Ext.define ("viewer.components.SelectionModule",{
         if(me.hasLeftTrees())
         {
             if(me.config.selectOwnServices || me.config.selectCsw) {
-                if(!this.advancedValueConfigs){
-                    this.advancedValueConfigs= new Array();
+                if(!this.config.advancedValueConfigs){
+                    this.config.advancedValueConfigs= new Array();
                 }
-                this.advancedValueConfigs.unshift({label: "", value: ""});
+                this.config.advancedValueConfigs.unshift({label: "", value: ""});
                 var store = Ext.create('Ext.data.Store', {
                     fields: ['label', 'value'],
-                    data : this.advancedValueConfigs
+                    data : this.config.advancedValueConfigs
                 });
-                var combo = Ext.create(Ext.form.field.ComboBox,{
+                var combo = Ext.create('Ext.form.ComboBox', {
                     store:store,
                     queryMode: "local",
                     displayField: 'label',
                     id:"advancedSearchQuery",
                     valueField: 'value',
-                    fieldLabel: this.advancedLabel !== null ? this.advancedLabel: ""
+                    fieldLabel: this.config.advancedLabel !== null ? this.config.advancedLabel: ""
                 });
                 items.unshift({
                         // Form above the trees with radiobuttons and textfields
-                        xtype: 'form',
-                        items: [{
-                            xtype: 'fieldcontainer',
-                            id: 'selectionModuleCustomFormFieldContainer',
-                            layout:{
-                                type: 'vbox',
-                                align:"stretch"
-                            },
-                            border: 0,
-                            defaults: {
-                                xtype: 'textfield',
-                                style: {
-                                    marginRight: '5px'
-                                }
-                            },
-                            height: '100%',
-                            defaultType: 'textfield',
-                            items: [{
-                                xtype: 'fieldcontainer',
+                        xtype: 'container',
+                        height: 0,
+                        padding: 5,
+                        border: 0,
+                        id: 'selectionModuleCustomFormContainer',
+                        layout: 'auto',
+                        items: [
+                            {
+                                xtype: 'panel',
                                 id: 'customServicesTextfields',
+                                border: false,
+                                header: false,
                                 layout: 'hbox',
-                                border: 0,
                                 defaults: {
                                     xtype: 'textfield',
                                     style: {
                                         marginRight: '5px'
                                     }
                                 },
-                              //  flex: 1,
+                                height: MobileManager.isMobile() ? 35 : 25,
                                 width: '100%',
                                 defaultType: 'textfield',
                                 items: [
                                     {hidden: true, id: 'customServiceUrlTextfield', flex: 1, emptyText:'Voer een URL in'},
-                                    {xtype: "flamingocombobox", store: [ ['wms','WMS'], ['arcims','ArcIMS'], ['arcgis','ArcGIS'] ], hidden: true, id: 'customServiceUrlSelect', width: 75, emptyText:'Maak uw keuze'},
+                                    {xtype: "combobox", store: [ ['wms','WMS'], ['arcims','ArcIMS'], ['arcgis','ArcGIS'] ], hidden: true, id: 'customServiceUrlSelect', width: 75, emptyText:'Maak uw keuze'},
                                     {xtype: 'button', text: 'Service ophalen', hidden: true, id: 'customServiceUrlButton', handler: function() {
                                             me.loadCustomService();
                                     }},
-                                    {hidden: true, id: 'cswServiceUrlTextfield', flex: 1, emptyText:'Voer een URL in', value : this.defaultCswUrl !== undefined ? this.defaultCswUrl : "" },
+                                    {hidden: true, id: 'cswServiceUrlTextfield', flex: 1, emptyText:'Voer een URL in', value : this.config.defaultCswUrl !== undefined ? this.config.defaultCswUrl : "" },
                                     {hidden: true, id: 'cswSearchTextfield', flex: 1, emptyText:'Zoekterm', listeners: {
                                     specialkey: function(field, e){
                                         if (e.getKey() === e.ENTER) {
@@ -631,35 +570,29 @@ Ext.define ("viewer.components.SelectionModule",{
                                 ]
                             },
                             {
-                                xtype:'panel',
+                                xtype: 'panel',
                                 id: 'cswAdvancedSearchField',
-                                columnWidth: 0.5,
-                                title: 'Geavanceerd zoeken',
+                                header: { 
+                                    title: 'Geavanceerd zoeken'
+                                },
                                 collapsible: true,
-                                collapsed:!this.alwaysShow,
-                                height: 65,
+                                collapsed: !this.config.alwaysShow,
+                                height: MobileManager.isMobile() ? 85 : 65,
+                                width: '100%',
                                 bodyPadding: 5,
-                                hidden:true,
-                                defaultType: 'textfield',
-                                defaults: {anchor: '100%'},
-                                layout: 'anchor',
-                                items :[combo],
+                                hidden: true,
+                                items: [ combo ],
+                                layout: 'fit',
                                 listeners: {
                                     beforecollapse: function() {
                                         me.handleSourceChange('radioCSW', true);
                                     },
                                     beforeexpand: function() {
-                                        me.handleSourceChange('radioCSW', true, 120);
+                                        me.handleSourceChange('radioCSW', true, MobileManager.isMobile() ? 140 : 120);
                                     }
                                 }
                             }
                         ]
-                        }
-                        ],
-                        height: MobileManager.isMobile() ? 50 : 0,
-                        padding: '5px',
-                        border: 0,
-                        id: 'selectionModuleCustomFormContainer'
                     });
                 }
                 items.unshift({
@@ -676,18 +609,17 @@ Ext.define ("viewer.components.SelectionModule",{
                                 marginRight: '5px'
                             }
                         },
-                        width: '100%',
-                        height: '100%',
                         defaultType: 'radio',
                         items: radioControls
                     }],
                     height: radioControls.length === 0 ? 0 : MobileManager.isMobile() ? 40 : 30,
-                    padding: '5px',
+                    padding: '0 5px 5px 5px',
                     border: 0,
-                    id: 'selectionModuleFormContainer'
+                    id: 'selectionModuleFormContainer',
+                    layout: 'fit'
             });
         }
-        
+
         // Create main container
         Ext.create('Ext.container.Container', {
             id: 'selectionModuleMainContainer',
@@ -704,7 +636,7 @@ Ext.define ("viewer.components.SelectionModule",{
             items: items
         });
     },
-    
+
     initTreeSelectionContainer: function() {
         var me = this;
         // minimal tree interface (right tree with selected content and move up/down buttons)
@@ -712,40 +644,19 @@ Ext.define ("viewer.components.SelectionModule",{
                 {
                     xtype: 'container',
                     flex: 1,
-                    html: '<div id="selectionTreeContainer" class="selectionModuleTreeContainer" style="width: 100%; height: 100%; visibility: visible;"></div>'
+                    id: 'selectionTreeContainer',
+                    layout: 'fit'
                 },
-                {xtype: 'container', width: 30, layout: {type: 'vbox', align: 'center'}, items: [
-                    {xtype: 'container', html: '<div></div>', flex: 1},
-                    {
-                        xtype: 'button',
-                        icon: me.moveUpIcon,
-                        width: 23,
-                        height: 22,
-                        handler: function() {
-                            me.moveNode('up');
-                        },
-                        listeners: {
-                            afterrender: function(button) {
-                                me.fixButtonLayout(button);
-                            }
-                        }
+                this.createMoveButtons({
+                    iconTop: me.moveUpIcon,
+                    iconBottom: me.moveDownIcon,
+                    handlerTop: function() {
+                        me.moveNode('up');
                     },
-                    {
-                        xtype: 'button',
-                        icon: me.moveDownIcon,
-                        width: 23,
-                        height: 22,
-                        handler: function() {
-                            me.moveNode('down');
-                        },
-                        listeners: {
-                            afterrender: function(button) {
-                                me.fixButtonLayout(button);
-                            }
-                        }
-                    },
-                    {xtype: 'container', html: '<div></div>', flex: 1}
-                ]}
+                    handlerBottom: function() {
+                        me.moveNode('down');
+                    }
+                })
             ];
         // when there is one or more left trees configured, add left interface (left tree and move from/to tree buttons)
         if(me.hasLeftTrees())
@@ -754,45 +665,23 @@ Ext.define ("viewer.components.SelectionModule",{
                 {
                     xtype: 'container',
                     flex: 1,
-                    html: '<div id="applicationTreeContainer" class="selectionModuleTreeContainer" style="position: absolute; width: 100%; height: 100%; visibility: visible;"></div>' + 
-                          '<div id="registryTreeContainer" class="selectionModuleTreeContainer" style="position: absolute; width: 100%; height: 100%; visibility: hidden;"></div>' + 
+                    html: '<div id="applicationTreeContainer" class="selectionModuleTreeContainer" style="position: absolute; width: 100%; height: 100%; visibility: visible;"></div>' +
+                          '<div id="registryTreeContainer" class="selectionModuleTreeContainer" style="position: absolute; width: 100%; height: 100%; visibility: hidden;"></div>' +
                           '<div id="customTreeContainer" class="selectionModuleTreeContainer" style="position: absolute; width: 100%; height: 100%; visibility: hidden;"></div>'
                 },
-                {xtype: 'container', width: 30, layout: {type: 'vbox', align: 'center'}, items: [
-                    {xtype: 'container', html: '<div></div>', flex: 1},
-                    {
-                        xtype: 'button',
-                        icon: me.moveRightIcon,
-                        width: 23,
-                        height: 22,
-                        handler: function() {
-                            me.addSelectedLayers();
-                        },
-                        listeners: {
-                            afterrender: function(button) {
-                                me.fixButtonLayout(button);
-                            }
-                        }
+                this.createMoveButtons({
+                    iconTop: me.moveRightIcon,
+                    iconBottom: me.moveLeftIcon,
+                    handlerTop: function() {
+                        me.addSelectedLayers();
                     },
-                    {
-                        xtype: 'button',
-                        icon: me.moveLeftIcon,
-                        width: 23,
-                        height: 22,
-                        handler: function() {
-                            me.removeSelectedNodes();
-                        },
-                        listeners: {
-                            afterrender: function(button) {
-                                me.fixButtonLayout(button);
-                            }
-                        }
-                    },
-                    {xtype: 'container', html: '<div></div>', flex: 1}
-                ] }
+                    handlerBottom: function() {
+                        me.removeSelectedNodes();
+                    }
+                })
             );
         }
-        Ext.create('Ext.container.Container', {
+        var treeContainer = Ext.create('Ext.container.Container', {
             layout: {
                 type: 'hbox',
                 align: 'stretch'
@@ -800,23 +689,41 @@ Ext.define ("viewer.components.SelectionModule",{
             width: '100%',
             height: '100%',
             id: 'selectionModuleTreesContainer',
-            items: items,
-            renderTo: 'treeSelectionContainer'
+            items: items
         });
+        Ext.getCmp('selectionModuleTreeContentContainer').add(treeContainer);
     },
-    
-    fixButtonLayout: function(button) {
-        // Dirty hack to fix icon problem
-        if(Ext.isIE9) {
-            Ext.Array.each(Ext.fly(button.el).query('.x-btn-inner'), function(obj) {
-                obj.className = '';
-            });
-        }
+
+    createMoveButtons: function(config) {
+        return {
+            xtype: 'container',
+            width: MobileManager.isMobile() ? undefined : 30,
+            padding: MobileManager.isMobile() ? '0 2px' : undefined,
+            layout: { type: 'vbox', align: 'center' },
+            items: [
+                { xtype: 'container', html: '<div></div>', flex: 1 },
+                {
+                    xtype: 'button',
+                    icon: config.iconTop,
+                    width: MobileManager.isMobile() ? undefined : 23,
+                    height: MobileManager.isMobile() ? undefined : 22,
+                    handler: config.handlerTop
+                },
+                {
+                    xtype: 'button',
+                    icon: config.iconBottom,
+                    width: MobileManager.isMobile() ? undefined : 23,
+                    height: MobileManager.isMobile() ? undefined : 22,
+                    handler: config.handlerBottom
+                },
+                { xtype: 'container', html: '<div></div>', flex: 1 }
+            ]
+        };
     },
-    
+
     initTrees: function() {
         var me = this;
-        
+
         var defaultStoreConfig = {
             model: select.TreeNode,
             root: {
@@ -829,7 +736,7 @@ Ext.define ("viewer.components.SelectionModule",{
                 type: 'memory'
             }
         };
-        
+
         var defaultTreeConfig = {
             xtype: 'treepanel',
             rootVisible: false,
@@ -871,10 +778,10 @@ Ext.define ("viewer.components.SelectionModule",{
             }
             me.treePanels.applicationTree.treePanel = Ext.create('Ext.tree.Panel', applicationTreeConfig);
         }
-        
+
         if(me.config.selectLayers) {
-            var serviceStore = Ext.create("Ext.ux.b3p.TreeStore", {
-                autoLoad: true,
+            var serviceStore = Ext.create("Ext.data.TreeStore", {
+                //autoLoad: true,
                 proxy: {
                     type: 'ajax',
                     url: actionBeans["geoserviceregistry"]
@@ -883,7 +790,7 @@ Ext.define ("viewer.components.SelectionModule",{
                 defaultRootProperty: 'children',
                 model: select.TreeNode,
                 nodeParam: 'nodeId'
-            });    
+            });
 
             me.treePanels.registryTree.treeStore = serviceStore;
             var registryTreeConfig = Ext.apply(defaultTreeConfig, {
@@ -911,7 +818,7 @@ Ext.define ("viewer.components.SelectionModule",{
             }
             me.treePanels.registryTree.treePanel = Ext.create('Ext.tree.Panel', registryTreeConfig);
         }
-        
+
         if(me.config.selectOwnServices || me.config.selectCsw) {
             me.treePanels.customServiceTree.treeStore = Ext.create('Ext.data.TreeStore', Ext.apply({}, defaultStoreConfig));
             var customServiceConfig = Ext.apply(defaultTreeConfig, {
@@ -942,12 +849,11 @@ Ext.define ("viewer.components.SelectionModule",{
             }
             me.treePanels.customServiceTree.treePanel = Ext.create('Ext.tree.Panel', customServiceConfig);
         }
-        
+
         me.treePanels.selectionTree.treeStore = Ext.create('Ext.data.TreeStore', Ext.apply({}, defaultStoreConfig));
         me.treePanels.selectionTree.treePanel = Ext.create('Ext.tree.Panel', Ext.apply(defaultTreeConfig, {
             treePanelType: 'selectionTree',
             store: me.treePanels.selectionTree.treeStore,
-            renderTo: 'selectionTreeContainer',
             listeners: {
                 itemdblclick: function(view, record, item, index, event, eOpts) {
                     me.removeSelectedNodes();
@@ -955,8 +861,9 @@ Ext.define ("viewer.components.SelectionModule",{
             },
             tbar: null
         }));
+        Ext.getCmp('selectionTreeContainer').add(me.treePanels.selectionTree.treePanel);
     },
-    
+
     filterRemote: function(tree, textvalue) {
         var treeStore = tree.getStore();
         if(textvalue !== '') {
@@ -977,13 +884,13 @@ Ext.define ("viewer.components.SelectionModule",{
             me.setAllNodesVisible(true, treePanelType);
         } else {
             me.setAllNodesVisible(true, treePanelType);
-            var re = new RegExp(Ext.escapeRe(textvalue), 'i');
+            var re = new RegExp(Ext.String.escapeRegex(textvalue), 'i');
             var visibleParents = [];
             var filter = function(node) {// descends into child nodes
                 var addParents = function(node) {
                     if(node.parentNode != null) {// Dont add the root
                         var nodeid = node.get('id');
-                        if(!Ext.Array.contains(nodeid)) visibleParents.push(nodeid); 
+                        if(!Ext.Array.contains(nodeid)) visibleParents.push(nodeid);
                         addParents(node.parentNode);
                     }
                 };
@@ -1019,7 +926,7 @@ Ext.define ("viewer.components.SelectionModule",{
             me.setAllNodesVisible(false, treePanelType, visibleParents);
         }
     },
-    
+
     hasLeftTrees: function() {
         return (this.config.selectGroups || this.config.selectLayers || this.config.selectOwnServices || this.config.selectCsw);
     },
@@ -1060,7 +967,7 @@ Ext.define ("viewer.components.SelectionModule",{
         var rootLevel = me.levels[me.rootLevel];
         if(Ext.isDefined(rootLevel.children)) {
             for(var i = 0 ; i < rootLevel.children.length; i++) {
-                var l = me.addLevel(rootLevel.children[i], true, false, this.showBackgroundLevels);
+                var l = me.addLevel(rootLevel.children[i], true, false, this.config.showBackgroundLevels);
                 if(l !== null) {
                     l.expanded = true; // Make top levels expand
                     levels.push(l);
@@ -1073,15 +980,15 @@ Ext.define ("viewer.components.SelectionModule",{
     loadSelectedLayers: function() {
         var me = this;
         var nodes = [];
-        
+
         var rootNode = me.treePanels.selectionTree.treePanel.getRootNode();
         // First remove all current children, could be a reload of the screen
         me.clearTree(rootNode);
-        
+
         for ( var i = 0 ; i < me.selectedContent.length ; i ++){
             var contentItem = me.selectedContent[i];
             if(contentItem.type ==  "level") {
-                var level = me.addLevel(contentItem.id, false, false, this.showBackgroundLevels);
+                var level = me.addLevel(contentItem.id, false, false, this.config.showBackgroundLevels);
                 if(level != null){
                     nodes.push(level);
                 }
@@ -1094,7 +1001,6 @@ Ext.define ("viewer.components.SelectionModule",{
     },
 
     addLevel: function(levelId, showChildren, showLayers, showBackgroundLayers, childrenIdsToShow,descriptions) {
-
         var me = this;
         if(!Ext.isDefined(me.levels[levelId])) {
             return null;
@@ -1109,7 +1015,8 @@ Ext.define ("viewer.components.SelectionModule",{
         // Create a leaf node when a level has layers (even if it has children)
         if(Ext.isDefined(level.layers)) {
             treeNodeLayer.type = 'maplevel';
-            treeNodeLayer.id = 'm' + level.id;
+            treeNodeLayer.nodeid = 'm' + level.id;
+            treeNodeLayer.leaf = true;
             showChildren = false;
         }
         if(showChildren) {
@@ -1130,11 +1037,11 @@ Ext.define ("viewer.components.SelectionModule",{
                     nodes.push(me.addLayer(level.layers[j]));
                 }
             }
-            treeNodeLayer.children = nodes;
+            treeNodeLayer.origData.children = nodes;
         }
         return treeNodeLayer;
     },
-            
+
     containsId : function (level, ids){
         var l = this.levels[level];
         if(Ext.Array.contains(ids, parseInt(level))){
@@ -1146,18 +1053,18 @@ Ext.define ("viewer.components.SelectionModule",{
                 var found = Ext.Array.contains(ids,parseInt(child));
                 if(found){
                     return true;
-                }else{                
+                }else{
                     found = this.containsId(child, ids);
                     if(found){
                         return true;
                     }
                 }
             }
-            
+
         }
         return false;
     },
-    
+
     addLayer: function (layerId){
         var me = this;
         if(!Ext.isDefined(me.appLayers[layerId])) {
@@ -1171,13 +1078,13 @@ Ext.define ("viewer.components.SelectionModule",{
         treeNodeLayer.type = 'appLayer';
         return treeNodeLayer;
     },
-    
+
     createNode: function (nodeid, nodetext, serviceid, leaf, expanded,description) {
         if(typeof expanded === "undefined") expanded = false;
         var node =  {
             text: nodetext,
             name: nodetext,
-            id: nodeid,
+            nodeid: nodeid,
             expanded: expanded,
             expandable:!leaf,
             leaf: leaf,
@@ -1193,13 +1100,36 @@ Ext.define ("viewer.components.SelectionModule",{
     },
 
     insertTreeNode: function(node, root, autoExpand) {
-        var me = this;
+        if(Ext.isArray(node)) {
+            for(var i = 0; i < node.length; i++) {
+                this.appendNode(node[i], root, autoExpand);
+            }
+        } else {
+            this.appendNode(node, root, autoExpand);
+        }
+    },
+            
+    appendNode: function(node, root, autoExpand) {
         if(typeof autoExpand == "undefined") autoExpand = true;
-        var addedNode = root.appendChild(node);
+        var addedNode = this.insertNode(root, node);
         if(autoExpand) root.expand();
         return addedNode;
     },
-    
+
+    // Appending the whole tree at once gave issues in ExtJS 4.2.1
+    // when there where sub-sub-childs present. Looping over childs,
+    // and adding them manually seems to fix this
+    insertNode: function(parentNode, insertNode) {
+        var me = this,
+            newParentNode = parentNode.appendChild(insertNode);
+        if(insertNode.origData && insertNode.origData.children) {
+            Ext.Array.each(insertNode.origData.children, function(childNode) {
+                me.insertNode(newParentNode, childNode);
+            });
+        }
+        return newParentNode;
+    },
+
     handleSourceChange: function(field, newval, height) {
         var me = this;
         var customServiceUrlTextfield = Ext.getCmp('customServiceUrlTextfield');
@@ -1212,7 +1142,7 @@ Ext.define ("viewer.components.SelectionModule",{
         var cswSearchTextfield = Ext.getCmp('cswSearchTextfield');
         var cswServiceUrlButton = Ext.getCmp('cswServiceUrlButton');
         var cswAdvancedSearchField = Ext.getCmp('cswAdvancedSearchField');
-        
+
         if(newval && me.hasLeftTrees()) {
             if(me.config.selectOwnServices || me.config.selectCsw) {
                 customServiceUrlTextfield.setVisible(false);
@@ -1242,34 +1172,32 @@ Ext.define ("viewer.components.SelectionModule",{
                 customServiceUrlTextfield.setVisible(true);
                 customServiceUrlSelect.setVisible(true);
                 customServiceUrlButton.setVisible(true);
-                this.setTopHeight(60);
+                this.setTopHeight(MobileManager.isMobile() ? 70 : 60);
             }
             if(field == 'radioCSW') {
                 me.customServiceType = 'csw';
                 customTreeContainer.setStyle('visibility', 'visible');
                 me.activeTree = me.treePanels.customServiceTree.treePanel;
-                cswServiceUrlTextfield.setVisible(Ext.isEmpty( this.showCswUrl)|| this.showCswUrl);
+                cswServiceUrlTextfield.setVisible(Ext.isEmpty( this.config.showCswUrl)|| this.config.showCswUrl);
                 cswSearchTextfield.setVisible(true);
                 cswServiceUrlButton.setVisible(true);
-                cswAdvancedSearchField.setVisible(this.advancedFilter);
-                if(this.advancedFilter){
-                    height = height || this.alwaysShow ? 120 : 80;
+                cswAdvancedSearchField.setVisible(this.config.advancedFilter);
+                if(this.config.advancedFilter){
+                    height = height || this.config.alwaysShow ? MobileManager.isMobile() ? 140 : 120 : MobileManager.isMobile() ? 90 : 80;
                 }else{
-                    height = height || 40;
+                    height = height || MobileManager.isMobile() ? 50 : 40;
                 }
                 this.setTopHeight(height);
             }
         }
-        
-        me.applyTreeScrollFix();
-        me.applyHorizontalScrolling();
+        me.resizeTrees();
     },
-            
+
     setTopHeight: function(height) {
         Ext.getCmp('selectionModuleCustomFormContainer').setHeight(height);
-        Ext.getCmp('selectionModuleTreesContainer').doLayout();
+        Ext.getCmp('selectionModuleTreesContainer').updateLayout();
     },
-    
+
     populateCustomServiceTree: function(userService, node, autoExpand) {
         var me = this;
         if(typeof node === "undefined") {
@@ -1285,17 +1213,17 @@ Ext.define ("viewer.components.SelectionModule",{
         me.userServices[userServiceId] = userService;
         var serviceNode = me.createNode('s' + userServiceId, userService.name, null, false);
         serviceNode.type = 'service';
-        serviceNode.children = me.createCustomNodesList(userService.topLayer, userServiceId, true);
+        serviceNode.origData.children = me.createCustomNodesList(userService.topLayer, userServiceId, true);
         me.insertTreeNode(serviceNode, node, autoExpand);
     },
-    
+
     clearTree : function(rootNode){
         var delNode;
         while (delNode = rootNode.childNodes[0]) {
             rootNode.removeChild(delNode);
         }
     },
-    
+
     populateCSWTree: function(results) {
         var me = this;
         var rootNode = me.treePanels.customServiceTree.treePanel.getRootNode();
@@ -1303,10 +1231,13 @@ Ext.define ("viewer.components.SelectionModule",{
         this.clearTree(rootNode);
         // Create service node
         for(var i in results) {
+            if(!results.hasOwnProperty(i)) {
+                continue;
+            }
             me.addCSWResult(results[i], rootNode);
         }
     },
-    
+
     addCSWResult: function(cswResult, rootNode) {
         var me = this;
         var userServiceId = 'csw' + (++me.addedServicesCount);
@@ -1333,10 +1264,13 @@ Ext.define ("viewer.components.SelectionModule",{
             }
         });
     },
-    
+
     createCustomNodesList: function(node, userServiceId, isTopLayer) {
         var me = this;
         var treeNode = null;
+        if(!node) {
+            return;
+        }
         var hasChildren = Ext.isDefined(node.children);
         // If topLayer is virtual, do not create node for topLayer
         if(!(isTopLayer && node.virtual)) {
@@ -1351,7 +1285,7 @@ Ext.define ("viewer.components.SelectionModule",{
             }else{
                 treeNode.type = 'appLayer';
             }
-            
+
             treeNode.origData.userService = userServiceId;
         }
         if(hasChildren && node.children.length > 0) {
@@ -1367,11 +1301,11 @@ Ext.define ("viewer.components.SelectionModule",{
             if(isTopLayer && node.virtual) {
                 return childnodes;
             }
-            treeNode.children = childnodes;
+            treeNode.origData.children = childnodes;
         }
         return treeNode;
     },
-    
+
     moveNode: function(direction) {
         var me = this;
         var rootNode = me.treePanels.selectionTree.treePanel.getRootNode();
@@ -1393,7 +1327,7 @@ Ext.define ("viewer.components.SelectionModule",{
             }
         });
     },
-    
+
     switchContent: function(node1, node2) {
         var me = this;
         var contentNode1 = null;
@@ -1428,7 +1362,7 @@ Ext.define ("viewer.components.SelectionModule",{
             me.addNode(record);
         });
     },
-    
+
     addNode: function(record) {
         var me = this;
         me.addToSelection(record);
@@ -1436,7 +1370,7 @@ Ext.define ("viewer.components.SelectionModule",{
 
     addToSelection: function(record) {
         var me = this;
-        var nodeType = me.getNodeType(record);        
+        var nodeType = me.getNodeType(record);
         if(nodeType == "appLayer" || nodeType == "layer" || (nodeType == "maplevel" && (!me.onRootLevel(record, me.activeTree)))) {
             var rootNode = me.treePanels.selectionTree.treePanel.getRootNode();
             var recordOrigData = me.getOrigData(record);
@@ -1446,7 +1380,7 @@ Ext.define ("viewer.components.SelectionModule",{
             }
             var searchNode = rootNode.findChild('id', recordid, false);
             if(searchNode == null) {
-                var objData = record.raw ? record.raw : record.data;
+                var objData = record.data;
                 if(rootNode != null) {
                     if(nodeType == "appLayer") {
                         // Own service
@@ -1486,8 +1420,8 @@ Ext.define ("viewer.components.SelectionModule",{
                                 background: false,
                                 checked: true,
                                 id: recordid,
-                                layerName: record.raw.layerName,
-                                alias: record.raw.layerName,
+                                layerName: record.data.layerName,
+                                alias: record.data.layerName,
                                 serviceId: service.id,
                                 status: 'new'
                             });
@@ -1505,19 +1439,19 @@ Ext.define ("viewer.components.SelectionModule",{
             }
         }
     },
-    
+
     findService: function(record) {
         var me = this;
         var parentNode = record.parentNode;
         // Root level reached and no service found
         if(parentNode == null) return null;
         if(me.getNodeType(parentNode) == "service") {
-            return parentNode.raw.service;
+            return parentNode.data.service;
         } else {
             return me.findService(parentNode);
         }
     },
-    
+
     /**
      * Makes sure the service for a layer will be available in the app
      */
@@ -1530,10 +1464,10 @@ Ext.define ("viewer.components.SelectionModule",{
         })) {
             return;
         }
-        
+
         // Check if the service was already in app
         if(me.services[customService.id]) {
-            // We may need to supplement the existing service with new layer 
+            // We may need to supplement the existing service with new layer
             // info - add all layer ids to the service info when saving
             me.layerMergeServices[customService.id] = customService;
         } else {
@@ -1541,7 +1475,7 @@ Ext.define ("viewer.components.SelectionModule",{
             me.addedServices.push(customService);
         }
     },
-    
+
     removeSelectedNodes: function() {
         var me = this;
         var rootNode = me.treePanels.selectionTree.treePanel.getRootNode();
@@ -1565,7 +1499,7 @@ Ext.define ("viewer.components.SelectionModule",{
             rootNode.removeChild(rootNode.findChild('id', record.get('id'), true));
         });
     },
-    
+
     removeService: function(serviceid) {
         var me = this;
         var addedServices = [];
@@ -1584,7 +1518,7 @@ Ext.define ("viewer.components.SelectionModule",{
             me.addedServices = addedServices;
         }
     },
-    
+
     removeLayer: function(layerid) {
         var me = this;
         var addedLayers = [];
@@ -1602,7 +1536,7 @@ Ext.define ("viewer.components.SelectionModule",{
         me.selectedContent = selectedContent;
         me.addedLayers = addedLayers;
     },
-    
+
     removeLevel: function(levelid) {
         var me = this;
         var addedLevels = [];
@@ -1620,7 +1554,7 @@ Ext.define ("viewer.components.SelectionModule",{
         me.selectedContent = selectedContent;
         me.addedLevels = addedLevels;
     },
-    
+
     cancelSelection: function() {
         var me = this;
         // Remove layers, levels and services with status = new, a.k.a. not added to the selectedContent
@@ -1629,7 +1563,7 @@ Ext.define ("viewer.components.SelectionModule",{
                 me.removeLayer(addedLayer.id);
             }
         });
-        
+
         Ext.Array.each(me.addedLevels, function(addedLevel) {
             if(addedLevel.status == 'new') {
                 me.removeLevel(addedLevel.id);
@@ -1643,17 +1577,17 @@ Ext.define ("viewer.components.SelectionModule",{
         me.layerMergeServices = {};
         me.popup.hide();
     },
-    
+
     saveSelection: function() {
         var me = this;
         Ext.Array.each(me.addedServices, function(addedService) {
             if(addedService.status == 'new') {
                 addedService.status = 'added';
-                me.viewerController.addService(addedService);
+                me.config.viewerController.addService(addedService);
             }
         });
         Ext.Object.each(me.layerMergeServices, function(mergeServiceId, mergeService) {
-            var mergedService = me.viewerController.app.services[mergeService.id];
+            var mergedService = me.config.viewerController.app.services[mergeService.id];
             Ext.Object.each(mergeService.layers, function(name, layer) {
                 if(mergedService.layers[name] == undefined) {
                     mergedService.layers[name] = layer;
@@ -1669,31 +1603,29 @@ Ext.define ("viewer.components.SelectionModule",{
         Ext.Array.each(me.addedLayers, function(addedLayer) {
             if(addedLayer.status == 'new') {
                 addedLayer.status = 'added';
-                me.viewerController.addAppLayer(addedLayer);
+                me.config.viewerController.addAppLayer(addedLayer);
             }
         });
-        me.viewerController.setSelectedContent(me.selectedContent);
+        me.config.viewerController.setSelectedContent(me.selectedContent);
         me.popup.hide();
     },
-    
+
     getNodeType: function(record) {
-        if(Ext.isDefined(record.raw) && Ext.isDefined(record.raw.type)) return record.raw.type;
         if(Ext.isDefined(record.data) && Ext.isDefined(record.data.type)) return record.data.type;
         return null;
     },
-    
+
     getOrigData: function(record) {
-        if(Ext.isDefined(record.raw) && Ext.isDefined(record.raw.origData)) return record.raw.origData;
         if(Ext.isDefined(record.data) && Ext.isDefined(record.data.origData)) return record.data.origData;
         return null;
     },
-    
+
     onRootLevel: function(record, tree) {
         var foundNode = tree.getRootNode().findChild('id', record.get('id'), false);
         if(foundNode !== null) return true;
         return false;
     },
-    
+
     getExtComponents: function() {
         var me = this;
         var extComponents = [];
@@ -1704,7 +1636,6 @@ Ext.define ("viewer.components.SelectionModule",{
         extComponents.push('selectionModuleSaveFormContainer');
         extComponents.push('selectionModuleTreesContainer');
         extComponents.push('selectionModuleFormFieldContainer');
-        extComponents.push('selectionModuleCustomFormFieldContainer');
         return Ext.Array.merge(extComponents, me.getActiveTreePanelIds());
     }
 });

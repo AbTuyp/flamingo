@@ -41,14 +41,14 @@ Ext.define ("viewer.components.TransparencySlider",{
         
         var me = this;
         var title = "";
-        if(this.config.title && !this.viewerController.layoutManager.isTabComponent(this.name)) title = this.config.title;
+        if(this.config.title && !this.config.viewerController.layoutManager.isTabComponent(this.name)) title = this.config.title;
         var tools = [];
-        // If no config is present for 'showHelpButton' or 'showHelpButton' is "true" we will show the help button
-        if(this.config && (!this.config.hasOwnProperty('showHelpButton') || this.config.showHelpButton !== "false")) {
+        // Only if 'showHelpButton' configuration is present and not set to "false" we will show the help button
+        if(this.config && this.config.hasOwnProperty('showHelpButton') && this.config.showHelpButton !== "false") {
             tools = [{
                 type:'help',
                 handler: function(event, toolEl, panel){
-                    me.viewerController.showHelp(me.config);
+                    me.config.viewerController.showHelp(me.config);
                 }
             }];
         }
@@ -56,25 +56,26 @@ Ext.define ("viewer.components.TransparencySlider",{
             renderTo: this.getContentDiv(),
             title: title,
             height: "100%",
-            html: '<div id="' + this.name + 'slidersContainer" style="width: 100%; height: 100%; padding: 10px; overflow: auto;"></div>',
-            tools: tools
+            autoScroll: true,
+            tools: tools,
+            bodyPadding: 10
         });
-        conf.sliderContainer = this.name + 'slidersContainer';
+        conf.parentContainer = this.panel;
         
-        for(var i = 0 ; i < this.sliders.length ; i ++){
+        for(var i = 0 ; i < this.config.sliders.length ; i ++){
             
-            var config = Ext.Object.merge(conf, this.sliders[i]);
+            var config = Ext.Object.merge(conf, this.config.sliders[i]);
             var slider =Ext.create("viewer.components.Slider", config);
             this.sliderObjects.push(slider);
         }
         
-        if(this.sliderForUserAdded){
+        if(this.config.sliderForUserAdded){
             var me =this;
             var c = {
                 selectedLayers:[],
-                initSelectedContent: JSON.parse(JSON.stringify( this.viewerController.app.selectedContent)),
-                name: this.sliderForUserAddedText ? this.sliderForUserAddedText :"Overige",
-                initialTransparency: this.sliderForUserAddedInitTransparency
+                initSelectedContent: JSON.parse(JSON.stringify( this.config.viewerController.app.selectedContent)),
+                name: this.config.sliderForUserAddedText ? this.config.sliderForUserAddedText :"Overige",
+                initialTransparency: this.config.sliderForUserAddedInitTransparency
             }
             c = Ext.Object.merge(conf, c);
             var s =Ext.create("viewer.components.NonInitLayerSlider", c);                        
@@ -85,8 +86,8 @@ Ext.define ("viewer.components.TransparencySlider",{
         
     getExtComponents: function() {
         var components = [ this.panel.getId() ];
-        for(var slider in this.sliderObjects) {
-            components.push(this.sliderObjects[slider].getExtComponents());
+        for(var i = 0; i < this.sliderObjects.length; i++) {
+            components.push(this.sliderObjects[i].getExtComponents());
         }
         return components;
     }

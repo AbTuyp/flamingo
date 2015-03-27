@@ -18,7 +18,7 @@
  */
 /**
  * Abstract component
- * For using a popup, set this.isPopup = true.
+ * For using a popup, set this.config.isPopup = true.
  * For rendering to the popup, use the this.popup.getContentId() function
  * The icon can be rendered to this.getDiv()
  *
@@ -33,7 +33,8 @@ Ext.define("viewer.components.Component",{
         viewerController: null,
         isPopup : false,
         hasSharedPopup:false,
-        regionName: ""
+        regionName: "",
+        containerId: ''
     },
     defaultButtonWidth: 46,
     defaultButtonHeight: 46,
@@ -48,13 +49,17 @@ Ext.define("viewer.components.Component",{
     */
     constructor: function(config){
         var me = this;
+        viewer.components.Component.superclass.constructor.call(this, config);
         me.initConfig(config);
         me.createIconStylesheet();
         var screenAreas = ['header', 'leftmargin_top', 'leftmargin_bottom', 'rightmargin_top', 'rightmargin_bottom', 'footer'];
-        if(config.hasOwnProperty('regionName') && Ext.Array.indexOf(screenAreas, config.regionName) !== -1) {
-            me.isPopup = false;
+        if(!me.config.hasOwnProperty('isPopup')) {
+            me.config.isPopup = true;
         }
-        if(me.isPopup){
+        if(config.hasOwnProperty('regionName') && Ext.Array.indexOf(screenAreas, config.regionName) !== -1) {
+            me.config.isPopup = false;
+        }
+        if(me.config.isPopup) {
             me.popup = Ext.create("viewer.components.ScreenPopup",config);
             me.popup.setComponent(me);
             me.popup.popupWin.addListener("resize", function() {
@@ -62,8 +67,8 @@ Ext.define("viewer.components.Component",{
             });
             me.popup.setIconClass(me.getPopupIcon());
         }
-        if(me.name && me.title) {
-            me.viewerController.layoutManager.setTabTitle(me.name, me.title);
+        if(me.config.name && me.title) {
+            me.config.viewerController.layoutManager.setTabTitle(me.config.name, me.title);
         }
         me.events = [];
         return me;
@@ -72,12 +77,20 @@ Ext.define("viewer.components.Component",{
       *Returns the id of the content div.
      */
     getContentDiv : function (){
-        if(this.isPopup){
+        if(this.config.isPopup){
             return this.popup.getContentId();
         }else{
-            return this.div;
+            return this.config.div;
         }
     },
+    
+    getContentContainer: function() {
+        if(this.config.isPopup) {
+            return this.popup.getContentContainer();
+        }
+        return Ext.getCmp(this.config.containerId);
+    },
+    
     /**
      * Renders a button in the div (holder)
      * if a titlebarIcon is set, its used to generate in the button. Otherwise the title or name.
@@ -95,16 +108,16 @@ Ext.define("viewer.components.Component",{
             baseClass = this.getBaseClass(),
             showLabel = false;
 
-        if(!me.isPopup) return;
+        if(!me.config.isPopup) return;
 
         me.options = options;
         if(options.icon) {
             buttonIcon = options.icon;
-            buttonCls = "customIconButton"
+            buttonCls = "customIconButton";
         } else if(me.haveSprite) {
             buttonCls = 'applicationSpriteClass buttonDefaultClass_normal ' + baseClass + '_normal';
         } else {
-            buttonText = (options.text || (me.name || ""));
+            buttonText = (options.text || (me.config.name || ""));
             buttonWidth = 'autoWidth';
         }
         
@@ -114,7 +127,7 @@ Ext.define("viewer.components.Component",{
         me.button = Ext.create('Ext.button.Button', {
             text: buttonText,
             cls: buttonCls,
-            renderTo: (showLabel ? null : me.div),
+            renderTo: (showLabel ? null : me.config.div),
             scale: "large",
             icon: buttonIcon,
             tooltip: options.tooltip || null,
@@ -122,10 +135,10 @@ Ext.define("viewer.components.Component",{
                 if(me.popup && me.popup.isVisible()) {
                     me.popup.hide();
                 } else {
-                    me.viewerController.showLoading(me.title || '');
+                    me.config.viewerController.showLoading(me.title || '');
                     setTimeout(function() {
                     options.handler();
-                        me.viewerController.hideLoading();
+                        me.config.viewerController.hideLoading();
                     }, 0);
                 }
             },
@@ -149,9 +162,9 @@ Ext.define("viewer.components.Component",{
         });
         
         if(showLabel) {
-            var textDimensions = Ext.util.TextMetrics.measure(me.div, options.label, buttonWidth);
+            var textDimensions = Ext.util.TextMetrics.measure(me.config.div, options.label, buttonWidth);
             Ext.create('Ext.container.Container', {
-                renderTo: me.div,
+                renderTo: me.config.div,
                 height: me.defaultButtonHeight + textDimensions.height + 3, // Button height + text height + text padding
                 margin: 3,
                 layout: {
@@ -259,7 +272,7 @@ Ext.define("viewer.components.Component",{
             return;
         }
         
-        var appSprite = me.viewerController.getApplicationSprite();
+        var appSprite = me.config.viewerController.getApplicationSprite();
         
         if(Ext.isEmpty(appSprite)) {
             me.haveSprite = false;
@@ -305,7 +318,9 @@ Ext.define("viewer.components.Component",{
                 'viewercomponentsAttributeList': 13,
                 'viewercomponentsPrint': 15,
                 'viewercomponentstoolsDownloadMap': 16,
-                'viewercomponentsSpatialFilter': 17
+                'viewercomponentsSpatialFilter': 17,
+                'viewercomponentsGraph': 18,
+                'viewercomponentsTOC': 19
             },
             menuIconPosition: {
                 x: 561
@@ -313,17 +328,17 @@ Ext.define("viewer.components.Component",{
             paddingCorrection: 3,
             xOffset: 354
         };
-        var styleContent  = '.applicationSpriteClass button { background-image: url(\'' + appSprite + '\') !important; width: 100%; height: 100%; } ';
+        var styleContent  = '.applicationSpriteClass .x-btn-button { background-image: url(\'' + appSprite + '\') !important; width: 100%; height: 100%; } ';
             styleContent += '.applicationSpriteClassPopup { background-image: url(\'' + appSprite + '\') !important; } ';
-            styleContent += ' .buttonDefaultClass_normal button { background-position: -' + ((spriteConfig.columnConfig.normal - 1) * spriteConfig.gridSize) + 'px 0px; } ';
-            styleContent += ' .buttonDefaultClass_hover button { background-position: -' + ((spriteConfig.columnConfig.hover - 1) * spriteConfig.gridSize) + 'px 0px; } ';
-            styleContent += ' .buttonDefaultClass_click button { background-position: -' + ((spriteConfig.columnConfig.click - 1) * spriteConfig.gridSize) + 'px 0px; } ';
+            styleContent += ' .buttonDefaultClass_normal .x-btn-button { background-position: -' + ((spriteConfig.columnConfig.normal - 1) * spriteConfig.gridSize) + 'px 0px; } ';
+            styleContent += ' .buttonDefaultClass_hover .x-btn-button { background-position: -' + ((spriteConfig.columnConfig.hover - 1) * spriteConfig.gridSize) + 'px 0px; } ';
+            styleContent += ' .buttonDefaultClass_click .x-btn-button { background-position: -' + ((spriteConfig.columnConfig.click - 1) * spriteConfig.gridSize) + 'px 0px; } ';
 
         var innerImageOffset = (spriteConfig.imageSize / 2) - (spriteConfig.popupImageSize / 2);
         Ext.Object.each(spriteConfig.rowConfig, function(compClassName, row) {
             Ext.Object.each(spriteConfig.columnConfig, function(state, col) {
             // Button style
-            styleContent += ' .' + compClassName + '_' + state + ' button { ' +
+            styleContent += ' .' + compClassName + '_' + state + ' .x-btn-button { ' +
                             'background-position: -' + (((col - 1) * spriteConfig.gridSize) + spriteConfig.paddingCorrection + spriteConfig.xOffset) + 'px -' + (((row - 1) * spriteConfig.gridSize) + spriteConfig.paddingCorrection) + 'px !important; ' +
                             '}';
             });
@@ -352,10 +367,10 @@ Ext.define("viewer.components.Component",{
     },
 
     resizeScreenComponent: function() {
-        if(!this.isTool() && !this.isPopup) {
+        if(!this.isTool() && !this.config.isPopup) {
             this.doResize();
         }
-		if(MobileManager.isMobile() && this.isPopup) {
+		if(MobileManager.isMobile() && this.config.isPopup) {
 			this.popup.resizePopup();
 			this.doResize();
 		}
@@ -367,9 +382,10 @@ Ext.define("viewer.components.Component",{
             var extComponents = me.getExtComponents();
             for(var i = 0; i < extComponents.length; i++) {
                 var comp = Ext.getCmp(extComponents[i]);
-                if(comp!=undefined && comp != null) {
-                    if(comp.doLayout) comp.doLayout();
-                    else if(comp.forceComponentLayout) comp.forceComponentLayout();
+                if(comp !== undefined && comp !== null) {
+                    if(comp.updateLayout) comp.updateLayout();
+                    // else if(comp.updateLayout) comp.updateLayout();
+                    // else if(comp.forceComponentLayout) comp.forceComponentLayout();
                 }
             }
         } else {

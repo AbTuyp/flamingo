@@ -16,6 +16,8 @@
  */
 package nl.b3p.viewer.util;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -32,6 +34,9 @@ import nl.b3p.viewer.config.app.ApplicationLayer;
 import nl.b3p.viewer.config.app.Level;
 import nl.b3p.viewer.config.security.Authorizations;
 import nl.b3p.viewer.config.services.GeoService;
+import nl.b3p.viewer.util.DB;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -42,22 +47,23 @@ import org.stripesstuff.stripersist.Stripersist;
  * @author Meine Toonen
  */
 public class SelectedContentCache {
-    
+
+    private static final Log log = LogFactory.getLog(SelectedContentCache.class);
     public static final String AUTHORIZATIONS_KEY = "authorizations";
     public static final String DETAIL_CACHED_SELECTED_CONTENT = "cachedSelectedContent";
     public static final String DETAIL_CACHED_SELECTED_CONTENT_DIRTY = "cachedSelectedContentDirty";
-    
-    public JSONObject getSelectedContent(HttpServletRequest request, Application app, boolean validXmlTags) throws JSONException {
-        
-        // Don't use cache when validXmlTags parameters is true, cache only
+
+    public JSONObject getSelectedContent(HttpServletRequest request, Application app, boolean validXmlTags, boolean includeAppLayerAttributes, boolean includeRelations) throws JSONException {
+
+        // Don't use cache when any of these parameters is true, cache only
         // the JSON variant used when starting up the viewer
-        if(validXmlTags) {
-            return processCache(request,createSelectedContent(app, validXmlTags));
+        if(validXmlTags || includeAppLayerAttributes || includeRelations) {
+            return processCache(request,createSelectedContent(app, validXmlTags, includeAppLayerAttributes, includeRelations));
         }
-        
+
         JSONObject cached = null;
         if(mustCreateNewCache(app)){
-            cached = createSelectedContent(app, validXmlTags);
+            cached = createSelectedContent(app, validXmlTags,includeAppLayerAttributes, includeRelations);
             ClobElement el = new ClobElement(cached.toString());
             app.getDetails().put(DETAIL_CACHED_SELECTED_CONTENT, el);
             setApplicationCacheDirty(app, false);
@@ -66,18 +72,19 @@ public class SelectedContentCache {
             ClobElement el = app.getDetails().get(DETAIL_CACHED_SELECTED_CONTENT);
             cached = new JSONObject(el.getValue());
         }
-        
+
         JSONObject selectedContent = processCache(request, cached);
         return selectedContent;
     }
-    
+
     private JSONObject processCache( HttpServletRequest request, JSONObject cached) throws JSONException{
-         Set<String> roles = Authorizations.getRoles(request);
-        
+        Set<String> roles = Authorizations.getRoles(request);
+       
         JSONObject levels = cached.getJSONObject("levels");
         JSONObject appLayers = cached.getJSONObject("appLayers");
         JSONArray selectedContent = cached.getJSONArray("selectedContent");
-         
+        JSONObject services = cached.has("services") ? cached.getJSONObject("services") : new JSONObject();
+
         for (Iterator<String> it = appLayers.sortedKeys(); it.hasNext();) {
             String key = it.next();
             JSONObject appLayer = appLayers.getJSONObject(key);
@@ -86,7 +93,7 @@ public class SelectedContentCache {
                 appLayers.remove(key);
             }
         }
-        
+
         for (Iterator it = levels.sortedKeys(); it.hasNext();) {
              String key = (String )it.next();
              JSONObject level = levels.getJSONObject(key);
@@ -106,8 +113,43 @@ public class SelectedContentCache {
                  level.put("layers", newLayers);
              }
         }
-   
-        
+
+        String scheme = request.getScheme();             
+        String serverName = request.getServerName();     
+        int serverPort = request.getServerPort();        
+        String contextPath = request.getContextPath();   
+        StringBuilder url =  new StringBuilder();
+        String servletPath = "/action/proxy/wms";
+        url.append(scheme).append("://").append(serverName);
+
+        if ((serverPort != 80) && (serverPort != 443)) {
+            url.append(":").append(serverPort);
+        }
+
+        url.append(contextPath).append(servletPath);
+        final String proxyUrl = url.toString();
+        for (Iterator<String> it = services.sortedKeys(); it.hasNext();) {
+
+            String key = it.next();
+            JSONObject service = services.getJSONObject(key);
+            if(service.has(GeoService.DETAIL_USE_PROXY) && service.getBoolean(GeoService.DETAIL_USE_PROXY)){
+                try {
+                    String actualURL = service.getString("url");
+                    String param = URLEncoder.encode(actualURL, "UTF-8");
+                    StringBuilder newUrl = new StringBuilder(proxyUrl);
+                    newUrl.append("?url=");
+                    newUrl.append(param);
+                    if(service.has(GeoService.PARAM_MUST_LOGIN) && service.getBoolean(GeoService.PARAM_MUST_LOGIN)){
+                        newUrl.append("&mustLogin=true&serviceId=");
+                        newUrl.append(service.get("id"));
+                    }
+                    service.put("url", newUrl);
+                } catch (UnsupportedEncodingException ex) {
+                    log.error("Cannot add proxy url for service: ",ex);
+                }
+            }
+        }
+
         JSONArray newSelectedContent = new JSONArray();
         for (int i = 0; i < selectedContent.length(); i++) {
             JSONObject obj = selectedContent.getJSONObject(i);
@@ -119,22 +161,22 @@ public class SelectedContentCache {
                 }
             }
         }
-        
+
         cached.put("selectedContent", newSelectedContent);
         return cached;
     }
-    
+
     private boolean isLevelAllowed(String id, JSONObject levels){
         return levels.has(id);
     }
-    
-    
+
+
     private boolean isLevelAllowed(JSONObject level, Set<String> roles) throws JSONException{
         boolean allowed = isAuthorized(level, roles, false);
         if(!allowed){
             return false;
         }
-        
+
         if(level.has("children")){
             JSONArray children = level.getJSONArray("children");
             JSONArray newChildren = new JSONArray();
@@ -148,23 +190,23 @@ public class SelectedContentCache {
         }
         return true;
     }
-        
+
     private boolean isAppLayerAllowed(JSONObject appLayer, Set<String> roles) throws JSONException{
         boolean allowed = isAuthorized(appLayer, roles, false);
         if(!allowed){
             return false;
         }
-        
+
         boolean editAuthorized = isAuthorized(appLayer, roles, true, "editAuthorizations");
         appLayer.put("editAuthorized", editAuthorized);
-        
+
         return true;
     }
-    
+
     private boolean isAuthorized(JSONObject obj, Set<String> roles, boolean alsoWriters) throws JSONException{
         return isAuthorized(obj, roles, alsoWriters, AUTHORIZATIONS_KEY);
     }
-    
+
     private boolean isAuthorized(JSONObject obj, Set<String> roles, boolean alsoWriters, String authString) throws JSONException{
 
          if(obj.has(authString) && obj.getJSONObject(authString).length() != 0){
@@ -176,7 +218,7 @@ public class SelectedContentCache {
                     String reader = readers.getString(i);
                     allowedRoles.add(reader);
                 }
-                
+
                 if( Collections.disjoint(roles, allowedRoles)){
                     return false;
                 }
@@ -200,31 +242,17 @@ public class SelectedContentCache {
         obj.remove(authString);
         return true;
     }
-    
-    public JSONObject createSelectedContent(Application app, boolean validXmlTags) throws JSONException {
+
+    public JSONObject createSelectedContent(Application app, boolean validXmlTags, boolean includeAppLayerAttributes, boolean includeRelations) throws JSONException {
         Level root = app.getRoot();
         JSONObject o = new JSONObject();
         if (root != null) {
             o.put("rootLevel", root.getId().toString());
 
             Application.TreeCache treeCache = app.loadTreeCache();
+            treeCache.initializeLevels("left join fetch l.documents");
+            treeCache.initializeApplicationLayers("left join fetch al.details");
             Authorizations.ApplicationCache appCache = Authorizations.getApplicationCache(app);
-
-            // Prevent n+1 queries for each level            
-            Stripersist.getEntityManager().createQuery("from Level l "
-                    + "left join fetch l.documents "
-                    + "where l in (:levels) ")
-                    .setParameter("levels", treeCache.getLevels())
-                    .getResultList();
-
-            if (!treeCache.getApplicationLayers().isEmpty()) {
-                // Prevent n+1 queries for each ApplicationLayer            
-                Stripersist.getEntityManager().createQuery("from ApplicationLayer al "
-                        + "left join fetch al.details "
-                        + "where al in (:alayers) ")
-                        .setParameter("alayers", treeCache.getApplicationLayers())
-                        .getResultList();
-            }
 
             JSONObject levels = new JSONObject();
             o.put("levels", levels);
@@ -234,7 +262,7 @@ public class SelectedContentCache {
             o.put("selectedContent", selectedContent);
 
             List selectedObjects = new ArrayList();
-            walkAppTreeForJSON(levels, appLayers, selectedObjects, root, false, validXmlTags, app, treeCache, appCache);
+            walkAppTreeForJSON(levels, appLayers, selectedObjects, root, false, validXmlTags, includeAppLayerAttributes, includeRelations, app, treeCache, appCache);
 
             Collections.sort(selectedObjects, new Comparator() {
                 @Override
@@ -284,10 +312,10 @@ public class SelectedContentCache {
         }
         return o;
     }
-    
-    private void walkAppTreeForJSON(JSONObject levels, JSONObject appLayers, List selectedContent, Level l, boolean parentIsBackground, boolean validXmlTags, Application app, Application.TreeCache treeCache, Authorizations.ApplicationCache appCache) throws JSONException {
+
+    private void walkAppTreeForJSON(JSONObject levels, JSONObject appLayers, List selectedContent, Level l, boolean parentIsBackground, boolean validXmlTags, boolean includeAppLayerAttributes, boolean includeRelations, Application app, Application.TreeCache treeCache, Authorizations.ApplicationCache appCache) throws JSONException {
         JSONObject o = l.toJSONObject(false, app, null);
-        
+
         Authorizations.Read auths = appCache.getProtectedLevels().get(l.getId());
         o.put(AUTHORIZATIONS_KEY, auths != null ? auths.toJSON() : new JSONObject());
         o.put("background", l.isBackground() || parentIsBackground);
@@ -296,33 +324,33 @@ public class SelectedContentCache {
             levelId="level_"+levelId;
         }
         levels.put(levelId, o);
-        
+
         if(l.getSelectedIndex() != null) {
             selectedContent.add(l);
         }
-        
+
         for(ApplicationLayer al: l.getLayers()) {
-            
-            JSONObject p = al.toJSONObject();
+
+            JSONObject p = al.toJSONObject(includeAppLayerAttributes, includeRelations);
             p.put("background", l.isBackground() || parentIsBackground);
-            
+
             Authorizations.ReadWrite rw = appCache.getProtectedAppLayers().get(al.getId());
             p.put("editAuthorizations", rw != null ? rw.toJSON() : new JSONObject());
             String alId = al.getId().toString();
             if (validXmlTags){
                 alId="appLayer_"+alId;
             }
-            
+
             Authorizations.ReadWrite applayerAuths = appCache.getProtectedAppLayers().get(al.getId());
             p.put(AUTHORIZATIONS_KEY, applayerAuths != null ? applayerAuths.toJSON() : new JSONObject());
-            
+
             appLayers.put(alId, p);
-            
+
             if(al.getSelectedIndex() != null) {
                 selectedContent.add(al);
             }
         }
-        
+
         List<Level> children = treeCache.getChildrenByParent().get(l);
         if(children != null) {
             Collections.sort(children);
@@ -338,15 +366,15 @@ public class SelectedContentCache {
                 Authorizations.Read levelAuths = appCache.getProtectedLevels().get(child.getId());
                 childObject.put(AUTHORIZATIONS_KEY, levelAuths != null ? levelAuths.toJSON() : new JSONObject());
                 jsonChildren.put(childObject);
-                walkAppTreeForJSON(levels, appLayers, selectedContent, child, l.isBackground(), validXmlTags, app, treeCache, appCache);
+                walkAppTreeForJSON(levels, appLayers, selectedContent, child, l.isBackground(), validXmlTags, includeAppLayerAttributes, includeRelations, app, treeCache, appCache);
             }
         }
     }
-        
+
     private void visitLevelForUsedServicesLayers(Level l, Map<GeoService,Set<String>> usedLayersByService,Application app, Application.TreeCache treeCache) {
         for(ApplicationLayer al: l.getLayers()) {
             GeoService gs = al.getService();
-            
+
             Set<String> usedLayers = usedLayersByService.get(gs);
             if(usedLayers == null) {
                 usedLayers = new HashSet<String>();
@@ -355,13 +383,13 @@ public class SelectedContentCache {
             usedLayers.add(al.getLayerName());
         }
         List<Level> children = treeCache.getChildrenByParent().get(l);
-        if(children != null) {        
+        if(children != null) {
             for(Level child: children) {
                 visitLevelForUsedServicesLayers(child, usedLayersByService, app, treeCache);
-            }        
+            }
         }
     }
-    
+
     private boolean mustCreateNewCache(Application app){
         ClobElement cache = app.getDetails().get(DETAIL_CACHED_SELECTED_CONTENT);
         if(cache == null){
@@ -372,7 +400,7 @@ public class SelectedContentCache {
             return dirty;
         }
     }
-    
+
     public static void setApplicationCacheDirty(Application app, Boolean dirty){
         Set<Application> apps = new HashSet<Application>();
         if(dirty){

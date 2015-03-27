@@ -31,14 +31,14 @@ Ext.define("viewer.components.BrowserCheck", {
         this.initConfig(conf);
         
         this.unsupported = (Ext.isIE && Ext.ieVersion < 8)
-            || !(Ext.isChrome || Ext.isGecko || Ext.isOpera || Ext.isWebkit || Ext.isSafari);
+            || (!Ext.isIE && !(Ext.isChrome || Ext.isGecko || Ext.isOpera || Ext.isWebkit || Ext.isSafari));
         this.unsupported = MobileManager.isMobile() ? false : this.unsupported;
         
         if((this.config.test || this.unsupported) && this.config.showPopup) {
             Ext.MessageBox.show({
                 buttons: Ext.Msg.OK,
-                msg: this.message,
-                title: this.title,
+                msg: this.config.message,
+                title: this.config.title,
                 icon: Ext.window.MessageBox.WARNING
             });
         }

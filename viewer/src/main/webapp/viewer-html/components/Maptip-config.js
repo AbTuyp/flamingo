@@ -120,6 +120,14 @@ Ext.define("viewer.components.CustomConfiguration",{
                     inputValue: true,
                     checked: this.configObject.detailShowAttr != undefined ? this.configObject.detailShowAttr : true,
                     labelWidth:this.labelWidth
+                },{
+                    xtype: 'checkbox',
+                    fieldLabel: '"null" waarden verbergen',
+                    name: 'detailHideNullValues',
+                    id: 'detailHideNullValues',
+                    inputValue: true,
+                    checked: this.configObject.detailHideNullValues !== undefined ? this.configObject.detailHideNullValues : false,
+                    labelWidth:this.labelWidth
                 }
             ]
         }
@@ -130,6 +138,9 @@ Ext.define("viewer.components.CustomConfiguration",{
     layerFilter: function(layers){
         var filteredLayers=[];
         for (var i in layers){
+            if(!layers.hasOwnProperty(i)) {
+                continue;
+            }
             var l = layers[i];
             //check if layer has something to show in the maptip
             if (l && l.details !=undefined &&

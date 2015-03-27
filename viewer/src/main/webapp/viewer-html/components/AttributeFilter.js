@@ -43,7 +43,7 @@ Ext.define ("viewer.components.AttributeFilter",{
     },
     constructor: function(config){
         this.initConfig(config);
-        this.operator = Ext.create('viewer.components.FlamingoCombobox', {
+        this.operator = Ext.create('Ext.form.ComboBox', {
             fieldLabel: '',
             store: this.numericOperators,
             queryMode: 'local',
@@ -51,12 +51,12 @@ Ext.define ("viewer.components.AttributeFilter",{
             value:'=',
             width:50,
             valueField: 'id',
-            data: this.initData
+            data: this.config.initData
         });
         this.valueStore = Ext.create('Ext.data.ArrayStore', {
             fields: ['value']
         });
-        this.value= Ext.create('viewer.components.FlamingoCombobox', {
+        this.value= Ext.create('Ext.form.ComboBox', {
             fieldLabel: '',
             store: this.valueStore,
             queryMode: 'local',
@@ -71,7 +71,7 @@ Ext.define ("viewer.components.AttributeFilter",{
     getUI : function (){
 		if(this.container === null) {
 			var items = [];
-			if(!this.first){
+			if(!this.config.first){
 				var logicStore = Ext.create('Ext.data.Store', {
 					fields: ['id','title'],
 					data : [{
@@ -82,12 +82,12 @@ Ext.define ("viewer.components.AttributeFilter",{
 						title:"en"
 					}]
 				});
-				this.logicOperator = Ext.create('viewer.components.FlamingoCombobox', {
+				this.logicOperator = Ext.create('Ext.form.ComboBox', {
 					fieldLabel: '',
 					store: logicStore,
 					queryMode: 'local',
 					displayField: 'title',
-					width: 50,
+					width: MobileManager.isMobile() ? 70 : 50,
 					value:'OR',
 					valueField: 'id'
 				});
@@ -97,20 +97,21 @@ Ext.define ("viewer.components.AttributeFilter",{
 			items.push(this.value);
 
 			this.container =  Ext.create("Ext.container.Container",{
-				id:"attributeFilter-"+this.id+"-"+this.number,
+				// id:"attributeFilter-"+this.config.id+"-"+this.config.number,
 				layout: {
-					type: 'hbox'
+					type: 'hbox',
+                                        align: 'stretch'
 				},
 				width: 320,
 				items:  items,
-				height: MobileManager.isMobile() ? 30 : 25
+				height: MobileManager.isMobile() ? 35 : 25
 			});
 		}
         return this.container;
     },
     getCQL : function (){
         var cql = " " ;
-        if(!this.first){
+        if(!this.config.first){
             cql += this.logicOperator.getValue() + " ";
         }
         cql += "\"" +  this.attribute + "\"";
@@ -128,7 +129,10 @@ Ext.define ("viewer.components.AttributeFilter",{
     /**
      * Set the unique list of values.
      */
-    setUniqueList: function(list){  
+    setUniqueList: function(list){
+        if(list === null) {
+            return;
+        }
         if (list.length>0){
             this.value.setHideTrigger(false);
         }else{
