@@ -45,13 +45,13 @@ Ext.define("viewer.CSWClient", {
     loadInfo: function(successFunction, failureFunction) {
         
         Ext.Ajax.request({
-            url: this.actionbeanUrl,
+            url: this.config.actionbeanUrl,
             params: this.config, // XXX also posts actionbeanUrl, but is harmless
             success: function(result) {
                 var response = Ext.JSON.decode(result.responseText);
                 
                 if(response.success) {
-                    successFunction(response.results);
+                    successFunction(response);
                 } else {
                     if(failureFunction != undefined) {
                         failureFunction(response.error);

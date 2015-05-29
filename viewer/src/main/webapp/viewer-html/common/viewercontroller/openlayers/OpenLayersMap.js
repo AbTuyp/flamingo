@@ -76,7 +76,7 @@ Ext.define ("viewer.viewercontroller.openlayers.OpenLayersMap",{
         }
         this.layersLoading = 0;
         this.markerLayer=null;
-        this.defaultIcon=[];
+        this.defaultIcon = {};
         this.markerIcons = {
             "default": contextPath + '/viewer-html/common/openlayers/img/marker.png',
             "spinner": contextPath + '/resources/images/spinner.gif'
@@ -273,7 +273,7 @@ Ext.define ("viewer.viewercontroller.openlayers.OpenLayersMap",{
         if(!Ext.isDefined(this.defaultIcon[type])){
             var size = new OpenLayers.Size(17,17);
             var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
-            var icon = this.markerIcons[type];
+            var icon = this.markerIcons.hasOwnProperty(type) ? this.markerIcons[type] : this.markerIcons['default'];
             this.defaultIcon [type] =  new OpenLayers.Icon(icon, size, offset);
         }
         var defaultIcon = this.defaultIcon[type];
