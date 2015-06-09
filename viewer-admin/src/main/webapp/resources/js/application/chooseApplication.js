@@ -42,6 +42,8 @@ Ext.onReady(function(){
         model: 'TableRow',
         remoteSort: true,
         remoteFilter: true,
+        sorters: 'name',
+        autoLoad: true,
         proxy: {
             type: 'ajax',
             url: gridurl,
@@ -97,26 +99,11 @@ Ext.onReady(function(){
                 hideable: false,
                 menuDisabled: true,
                 renderer: function(value, style, row) {
-                    var data = row.data;
-                    
-                    if(Ext.urlDecode(window.location.search.substring(1)).hasOwnProperty("debug") && Ext.urlDecode(window.location.search.substring(1)).debug == "true"){
-                        return Ext.String.format('<a href="#" onclick="return makeWorkVersion({0});">Maak werkversie</a>', value)                   
-                            + " | " + Ext.String.format('<a href="'+ editurl + '&application=' +'{0} ">Activeren</a>', value) +
-                                ' | ' +
-                                Ext.String.format('<a href="#" onclick="return removeObject({0});">Verwijderen</a>', value);
-                    }else{
-                        if(data.published == "Ja"){
-                            return Ext.String.format('<a href="#" onclick="return makeWorkVersion({0});">Maak werkversie</a>', value)+
-                                ' | ' +
-                                Ext.String.format('<a href="#" onclick="return removeObject({0});">Verwijderen</a>', value);;
-                        }else{
-                            return Ext.String.format('<a href="'+ editurl + '&application=' +'{0} ">Activeren</a>', value) +
-                                ' | ' +
-                                Ext.String.format('<a href="#" onclick="return removeObject({0});">Verwijderen</a>', value);
-                        }
-                    }
-                },
-                sortable: false
+                    return Ext.String.format('<a href="#" onclick="return makeWorkVersion({0});">Maak werkversie</a>', value)                   
+                        + " | " + Ext.String.format('<a href="'+ editurl + '&application=' +'{0} ">Activeren</a>', value) +
+                            ' | ' +
+                            Ext.String.format('<a href="#" onclick="return removeObject({0});">Verwijderen</a>', value);
+                }
             }
         ],
         bbar: Ext.create('Ext.PagingToolbar', {
@@ -130,13 +117,7 @@ Ext.onReady(function(){
                 enableTooltip: false
             })
         ],
-        renderTo: 'grid-container',
-        listeners: {
-            afterrender: function(grid) {
-                // Default sort on first column
-                grid.columns[0].setSortState('ASC');
-            }
-        }
+        renderTo: 'grid-container'
     }));
     
 });

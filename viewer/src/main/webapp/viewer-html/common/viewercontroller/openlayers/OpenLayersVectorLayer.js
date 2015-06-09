@@ -96,7 +96,7 @@ Ext.define("viewer.viewercontroller.openlayers.OpenLayersVectorLayer",{
         // The modifyfeature control allows us to edit and select features.
         this.modifyFeature = new OpenLayers.Control.ModifyFeature(this.frameworkLayer,{createVertices : true,vertexRenderIntent: "select"});
         
-        var map = this.viewerController.mapComponent.getMap().getFrameworkMap();
+        var map = this.config.viewerController.mapComponent.getMap().getFrameworkMap();
         map.addControl(this.point);
         map.addControl(this.line);
         map.addControl(this.polygon);
@@ -217,7 +217,7 @@ Ext.define("viewer.viewercontroller.openlayers.OpenLayersVectorLayer",{
         }else if(type === "Freehand"){
             this.freehand.activate();
         }else {
-           this.viewerController.logger.warning("Feature type >" + type + "< not implemented!");
+           this.config.viewerController.logger.warning("Feature type >" + type + "< not implemented!");
         }
     },
     /**
@@ -295,7 +295,7 @@ Ext.define("viewer.viewercontroller.openlayers.OpenLayersVectorLayer",{
      * @return The OpenLayerstype feature
      */
     toOpenLayersFeature : function(feature){
-        var geom = OpenLayers.Geometry.fromWKT(feature.wktgeom);
+        var geom = OpenLayers.Geometry.fromWKT(feature.config.wktgeom);
         var style = this.frameworkLayer.styleMap.styles["default"];    
         style.label = feature.label;
         var olFeature = new OpenLayers.Feature.Vector(geom,{id: feature.id},{style:style});

@@ -19,9 +19,10 @@ package nl.b3p.viewer.stripes;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,14 +30,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.persistence.EntityManager;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import net.sourceforge.stripes.action.*;
 import net.sourceforge.stripes.validation.Validate;
+import nl.b3p.commons.HttpClientConfigured;
 import nl.b3p.viewer.config.services.ArcIMSService;
+import nl.b3p.viewer.config.services.GeoService;
 import nl.b3p.viewer.config.services.WMSService;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.stripesstuff.stripersist.Stripersist;
 
 /**
  *
@@ -45,6 +56,7 @@ import org.apache.commons.io.IOUtils;
 @UrlBinding("/action/proxy/{mode}")
 @StrictBinding
 public class ProxyActionBean implements ActionBean {
+    private static final Log log = LogFactory.getLog(ProxyActionBean.class);
     private ActionBeanContext context;
     
     @Validate
@@ -53,6 +65,13 @@ public class ProxyActionBean implements ActionBean {
     @Validate
     private String mode;
 
+    @Validate
+    private boolean mustLogin;
+
+    @Validate
+    private Long serviceId;
+
+    // <editor-fold desc="Getters and Setters" defaultstate="collapsed">
     @Override
     public ActionBeanContext getContext() {
         return context;
@@ -78,7 +97,25 @@ public class ProxyActionBean implements ActionBean {
     public void setMode(String mode) {
         this.mode = mode;
     }
-    
+
+    public boolean isMustLogin() {
+        return mustLogin;
+    }
+
+    public void setMustLogin(boolean mustLogin) {
+        this.mustLogin = mustLogin;
+    }
+
+    public Long getServiceId() {
+        return serviceId;
+    }
+
+    public void setServiceId(Long serviceId) {
+        this.serviceId = serviceId;
+    }
+
+    // </editor-fold>
+
     @DefaultHandler
     public Resolution proxy() throws Exception {
 
@@ -97,8 +134,7 @@ public class ProxyActionBean implements ActionBean {
         // and an attacker knows the URL of the IP-whitelist protected service 
         // this may allow the attacker to request maps from that service if that
         // service does not verify IP using the X-Forwarded-For header we send.
-        
-        // We only proxy ArcIMS for OpenLayers for the moment        
+
         if(ArcIMSService.PROTOCOL.equals(mode)) {
             return proxyArcIMS();
         } else if(WMSService.PROTOCOL.equals(mode)){
@@ -175,17 +211,17 @@ public class ProxyActionBean implements ActionBean {
                 
             }
         };
-    }  
-    
-    private Resolution proxyWMS() throws IOException{
-        
+    }
+
+    private Resolution proxyWMS() throws IOException, URISyntaxException{
+
         HttpServletRequest request = getContext().getRequest();
         
         if(!"GET".equals(request.getMethod())) {
             return new ErrorResolution(HttpServletResponse.SC_FORBIDDEN);
         }
-        
-        List allowedParams = new ArrayList<String>();
+
+        List<String> allowedParams = new ArrayList<String>();
         allowedParams.add("VERSION");
         allowedParams.add("SERVICE");
         allowedParams.add("REQUEST");
@@ -216,23 +252,106 @@ public class ProxyActionBean implements ActionBean {
         URL theUrl = new URL(url);
         
         String query = theUrl.getQuery();
+        Map paramsMap = new HashMap(getContext().getRequest().getParameterMap());
+        StringBuilder paramsFromRequest = validateParams(paramsMap,allowedParams);
+
+        if((query == null || query.length() == 0) && paramsFromRequest.length() == 0){
+            // Must have parameters, so when none are existent, it is possibly a malicious use of this proxy.
+            return new ErrorResolution(HttpServletResponse.SC_FORBIDDEN);
+        }
         //only WMS request param's allowed
-        String[] params = query.split("&");        
+        String[] params = query != null ? query.split("&") : new String[0];
+        
+        StringBuilder paramsFromUrl = validateParams(params, allowedParams);
+        paramsFromUrl.append(paramsFromRequest);
+  
+        int index = paramsFromUrl.charAt(0) == '&' ? 1 : 0;
+        
+        String paramString = paramsFromUrl.substring(index);
+
+        theUrl = new URL("http",theUrl.getHost(),theUrl.getPort(),theUrl.getPath()+"?"+paramString);
+
+        String username = null;
+        String password = null;
+        if (mustLogin && serviceId != null) {
+            EntityManager em = Stripersist.getEntityManager();
+            GeoService gs = em.find(GeoService.class, serviceId);
+
+            username = gs.getUsername();
+            password = gs.getPassword();
+        }
+
+        final HttpClientConfigured client = new HttpClientConfigured(username, password, theUrl.toString());
+        HttpUriRequest req = new HttpGet(theUrl.toURI());
+        
+        HttpResponse response = null;
+        try {
+            //TODO: Check if response is a getFeatureInfo or getmap response.
+            response = client.execute(req);
+
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode >= 200 && statusCode < 300){
+                final HttpResponse finalResponse = response;
+                final HttpEntity entity = response.getEntity();
+
+                return new StreamingResolution(entity.getContentType().getValue()) {
+                    @Override
+                    protected void stream(HttpServletResponse resp) throws IOException {
+                        try {
+                            entity.writeTo(resp.getOutputStream());
+                        } finally {
+                            if (finalResponse != null) {
+                                client.close(finalResponse);
+                            }
+                            client.close();
+                        }
+                    }
+                };
+            } else {
+                return new ErrorResolution(statusCode, "Service returned: " + response.getStatusLine().getReasonPhrase());
+            }
+        } catch(Exception e){
+            log.error("Failed to write output:",e);
+            return null;
+        }
+    }
+
+    private StringBuilder validateParams (String [] params,List<String> allowedParams) throws UnsupportedEncodingException{
         StringBuilder sb = new StringBuilder();
         for (String param : params){
-            if (allowedParams.contains((param.split("=")[0]).toUpperCase())){
-                sb.append(param+"&");
+            String[] splitted = param.split("=");
+            if (allowedParams.contains((splitted[0]).toUpperCase())){
+                if(splitted.length > 1){
+                    sb.append(param.split("=")[0]);
+                    sb.append("=");
+                    sb.append(param.split("=")[1]);
+                }else{
+                    sb.append(splitted[0]);
+                }
+
+                sb.append("&");
             }
         }
-        theUrl = new URL("http",theUrl.getHost(),theUrl.getPort(),theUrl.getPath()+"?"+sb.toString());
-        
-        //TODO: Check if response is a getFeatureInfo response.
-        final URLConnection connection = theUrl.openConnection();
-        return new StreamingResolution(connection.getContentType()) {
-            @Override
-            protected void stream(HttpServletResponse response) throws IOException {
-                IOUtils.copy(connection.getInputStream(), response.getOutputStream());                
+        return sb;
+    }
+
+    private StringBuilder validateParams (Map<String,String[]> params,List<String> allowedParams) throws UnsupportedEncodingException{
+        StringBuilder sb = new StringBuilder();
+        for (String param : params.keySet()){
+            if (allowedParams.contains((param).toUpperCase())){
+                sb.append(URLEncoder.encode(param, "UTF-8"));
+                sb.append("=");
+                String[] paramValue = params.get(param);
+                for (int i = 0; i < paramValue.length; i++) {
+                    String val = paramValue[i];
+                    if(i > 0){
+                        sb.append(",");
+                    }
+                    sb.append(URLEncoder.encode(val, "UTF-8"));
+                }
+                sb.append("&");
             }
-        };
+        }
+        return sb;
     }
 }

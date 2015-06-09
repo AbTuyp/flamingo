@@ -24,6 +24,7 @@ Ext.define ("viewer.viewercontroller.openlayers.OpenLayersMap",{
     extend: "viewer.viewercontroller.controller.Map",
     layersLoading : null,
     utils:null,
+    markerIcons:null,
     /**
      * @constructor
      * @see viewer.viewercontroller.controller.Map#constructor
@@ -46,7 +47,7 @@ Ext.define ("viewer.viewercontroller.openlayers.OpenLayersMap",{
         }else if (maxBounds){
             config.center = maxBounds.getCenterLonLat();
         }else{
-            this.viewerController.logger.error("No bounds found, can't center viewport");
+            this.config.viewerController.logger.error("No bounds found, can't center viewport");
         }
         
         config.restrictedExtent = maxBounds;
@@ -56,7 +57,7 @@ Ext.define ("viewer.viewercontroller.openlayers.OpenLayersMap",{
         var me=this;
         
         //Overwrite default OpenLayers tools,don't set any mouse controls
-        config.controls=[
+        config.controls = [
             new OpenLayers.Control.Attribution(),
             new OpenLayers.Control.Navigation()
         ];
@@ -75,7 +76,11 @@ Ext.define ("viewer.viewercontroller.openlayers.OpenLayersMap",{
         }
         this.layersLoading = 0;
         this.markerLayer=null;
-        this.defaultIcon=null;
+        this.defaultIcon = {};
+        this.markerIcons = {
+            "default": contextPath + '/viewer-html/common/openlayers/img/marker.png',
+            "spinner": contextPath + '/resources/images/spinner.gif'
+        };
         this.markers=new Object();
         this.getFeatureInfoControl = null;
         this.addListener(viewer.viewercontroller.controller.Event.ON_LAYER_REMOVED,this.layerRemoved, this);
@@ -133,7 +138,7 @@ Ext.define ("viewer.viewercontroller.openlayers.OpenLayersMap",{
         try{
             map.addLayer(l);
         }catch(exception){
-            this.viewerController.logger.error(exception);
+            this.config.viewerController.logger.error(exception);
         }
     },
     
@@ -258,16 +263,22 @@ Ext.define ("viewer.viewercontroller.openlayers.OpenLayersMap",{
     *TODO: marker icon path...
     */
     setMarker : function(markerName,x,y,type){
-        if (this.markerLayer==null){
+        if (this.markerLayer===null){
             this.markerLayer = new OpenLayers.Layer.Markers("Markers");
             this.frameworkMap.addLayer(this.markerLayer);
+        }
+        if(!type){
+            type = "default";
+        }
+        if(!Ext.isDefined(this.defaultIcon[type])){
             var size = new OpenLayers.Size(17,17);
             var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
-            this.defaultIcon= new OpenLayers.Icon(contextPath+'/viewer-html/common/openlayers/img/marker.png',size,offset);
+            var icon = this.markerIcons.hasOwnProperty(type) ? this.markerIcons[type] : this.markerIcons['default'];
+            this.defaultIcon [type] =  new OpenLayers.Icon(icon, size, offset);
         }
-        /*According the 'type' load a icon: no types yet only default*/
-        var icon= this.defaultIcon.clone();
-        if (this.markers[markerName]==undefined){
+        var defaultIcon = this.defaultIcon[type];
+        var icon= defaultIcon.clone();
+        if (this.markers[markerName]=== undefined){
             this.markers[markerName]= new OpenLayers.Marker(new OpenLayers.LonLat(x,y),icon);
             this.markerLayer.addMarker(this.markers[markerName]);
         }else{
@@ -351,7 +362,7 @@ Ext.define ("viewer.viewercontroller.openlayers.OpenLayersMap",{
     handleEvent : function(args){
         var event = args.type;
         var options={};
-        var genericEvent = this.viewerController.mapComponent.getGenericEventName(event);
+        var genericEvent = this.config.viewerController.mapComponent.getGenericEventName(event);
         if (genericEvent==viewer.viewercontroller.controller.Event.ON_LAYER_ADDED){
             options.layer=this.getLayerByOpenLayersId(args.layer.id);
             if (options.layer ==undefined){
@@ -375,7 +386,7 @@ Ext.define ("viewer.viewercontroller.openlayers.OpenLayersMap",{
                   genericEvent==viewer.viewercontroller.controller.Event.ON_CHANGE_EXTENT){
             options.extent=this.getExtent();
         }else{
-            this.viewerController.logger.error("The event "+genericEvent+" is not implemented in the OpenLayersMap.handleEvent()");
+            this.config.viewerController.logger.error("The event "+genericEvent+" is not implemented in the OpenLayersMap.handleEvent()");
         }
         this.fireEvent(genericEvent,this,options);
     },

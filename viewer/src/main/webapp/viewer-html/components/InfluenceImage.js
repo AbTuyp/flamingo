@@ -32,11 +32,11 @@ Ext.define ("viewer.components.InfluenceImage",{
         viewer.components.InfluenceImage.superclass.constructor.call(this, conf);
         //this.initConfig(conf);  
         if (this.vectorLayer!=null){
-            this.viewerController.mapComponent.getMap().removeLayer(this.vectorLayer);
+            this.config.viewerController.mapComponent.getMap().removeLayer(this.vectorLayer);
             delete this.vectorLayer;
         }
         this.combineImageService = Ext.create("viewer.CombineImage",{});
-        this.viewerController.addListener(viewer.viewercontroller.controller.Event.ON_SELECTEDCONTENT_CHANGE,this.selectedContentChanged,this );
+        this.config.viewerController.addListener(viewer.viewercontroller.controller.Event.ON_SELECTEDCONTENT_CHANGE,this.selectedContentChanged,this );
         var me = this;
         this.popup.popupWin.addListener("show",function(){
             me.layerSelector.initLayers();
@@ -45,10 +45,10 @@ Ext.define ("viewer.components.InfluenceImage",{
     },
     selectedContentChanged : function (){
         if(this.imageLayer){
-            this.viewerController.mapComponent.getMap().addLayer(this.imageLayer);
+            this.config.viewerController.mapComponent.getMap().addLayer(this.imageLayer);
         }
         if(this.vectorLayer){
-            this.viewerController.mapComponent.getMap().addLayer(this.vectorLayer);
+            this.config.viewerController.mapComponent.getMap().addLayer(this.vectorLayer);
         }
     },
     /**
@@ -83,9 +83,9 @@ Ext.define ("viewer.components.InfluenceImage",{
      * @param bbox the bbox for this image (as new viewer.viewercontroller.controller.Extent)
      */
     addImage: function(imageUrl,bbox){                
-        if (this.imageLayer==null){
-            this.imageLayer = this.viewerController.mapComponent.createImageLayer(this.name + "ImageLayer", imageUrl, bbox);
-            this.viewerController.mapComponent.getMap().addLayer(this.imageLayer);
+        if (!this.imageLayer){
+            this.imageLayer = this.config.viewerController.mapComponent.createImageLayer(this.name + "ImageLayer", imageUrl, bbox);
+            this.config.viewerController.mapComponent.getMap().addLayer(this.imageLayer);
         }else{            
             this.imageLayer.setUrl(imageUrl);
             this.imageLayer.setExtent(bbox);

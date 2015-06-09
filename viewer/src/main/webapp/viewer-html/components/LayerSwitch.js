@@ -30,6 +30,7 @@ Ext.define ("viewer.components.LayerSwitch",{
     items: null,
     selectedBackgroundLevels: null,
     control: null,
+    container: null,
     
     config: {
         top:null,
@@ -43,30 +44,43 @@ Ext.define ("viewer.components.LayerSwitch",{
         this.initConfig(conf);
         this.loadComponent();
         
-        this.viewerController.on(viewer.viewercontroller.controller.Event.ON_SELECTEDCONTENT_CHANGE, function() {
+        this.config.viewerController.on(viewer.viewercontroller.controller.Event.ON_SELECTEDCONTENT_CHANGE, function() {
             this.loadComponent();
         }, this);
         
-        this.viewerController.mapComponent.getMap().on(viewer.viewercontroller.controller.Event.ON_LAYER_VISIBILITY_CHANGED, 
+        this.config.viewerController.mapComponent.getMap().on(viewer.viewercontroller.controller.Event.ON_LAYER_VISIBILITY_CHANGED, 
             this.layerVisibilityChanged, this);
+        
+        this.config.viewerController.on(viewer.viewercontroller.controller.Event.ON_COMPONENTS_FINISHED_LOADING, function() {
+            if(this.container) {
+                // console.log('ToFRONT-after-components-load');
+                this.container.zIndexManager.bringToFront(this.container, true);
+            }
+        }, this);
         
         return this;
     },
     
     loadComponent : function (){
         this.loadItems();
+        if(this.container === null) {
+            this.container = Ext.create('Ext.container.Container', {
+                renderTo:  this.div,
+                floating: true,
+                border: false,
+                shadow: false,
+                // top:  '30px',
+                style: {
+                    'zIndex': 1002
+                }
+            });
+            // this.container.zIndexManager.bringToFront(this.container, true);
+        }
         if(this.button) {
             this.button.destroy();
         }
         this.button = Ext.create('Ext.button.Cycle', {
             showText: true,
-            renderTo:  Ext.get(this.div).parent(),
-           // width: "100%",
-            top:  '30px',
-            style: {
-                marginBottom: '10px'
-            },
-            floating: true,
             menu: {
                 id: 'view-type-menu',
                 items: this.items
@@ -78,8 +92,24 @@ Ext.define ("viewer.components.LayerSwitch",{
                 }
             }
         });
-        this.button.zIndexManager.bringToFront(this.button);
-        this.button.setPosition(Number(this.left), Number(this.top));
+        this.container.add(this.button);
+        this.alignContainer();
+    },
+    
+    alignContainer: function() {
+        var pos = [Number(this.config.left), Number(this.config.top)];
+        var align = 'tl';
+        if(this.config.alignposition) {
+            align = this.config.alignposition;
+        }
+        if(align.substr(0, 1) === 'b') {
+            pos[1] = pos[1] * -1;
+        }
+        if(align.substr(1) === 'r') {
+            pos[0] = pos[0] * -1;
+        }
+        this.container.alignTo(Ext.getBody(), [align, align].join('-'), pos);
+        this.container.anchorTo(Ext.getBody(), [align, align].join('-'), pos);
     },
     
     levelItemId: function(level) {
@@ -104,7 +134,7 @@ Ext.define ("viewer.components.LayerSwitch",{
         
         // Find out which background levels are in the selected content
         me.selectedBackgroundLevels = [];
-        this.viewerController.traverseSelectedContent(function(level) {
+        this.config.viewerController.traverseSelectedContent(function(level) {
             if(level && level.background) {
                 me.selectedBackgroundLevels.push(level);
             }
@@ -117,7 +147,7 @@ Ext.define ("viewer.components.LayerSwitch",{
             me.items.push({
                 id: me.levelItemId(level),
                 text: level.name,
-                iconCls: 'view-text',
+                // iconCls: 'view-text',
                 checked: level == checkedBackgroundLevel
             });
         });
@@ -132,7 +162,7 @@ Ext.define ("viewer.components.LayerSwitch",{
         var foundLevel = null;
         Ext.each(this.selectedBackgroundLevels, function(level) {
             Ext.each(level.layers, function(appLayerId) {
-                if(me.viewerController.getAppLayerById(appLayerId).checked) {
+                if(me.config.viewerController.getAppLayerById(appLayerId).checked) {
                     foundLevel = level;
                     return false;
                 }
@@ -147,21 +177,22 @@ Ext.define ("viewer.components.LayerSwitch",{
         var me = this;
         // XXX either change background when layers initialized or only enable
         // control when layers initialized
-        if(this.viewerController.layersInitialized) {
+        if(this.config.viewerController.layersInitialized) {
             var selectedLevel = me.levelFromItemId(item.id);
             Ext.each(this.selectedBackgroundLevels, function(level) {
                 var checked = level == selectedLevel;
                 Ext.each(level.layers, function(appLayerId) {
-                    var appLayer = me.viewerController.getAppLayerById(appLayerId);
-                    me.viewerController.setLayerVisible(appLayer, checked);                    
+                    var appLayer = me.config.viewerController.getAppLayerById(appLayerId);
+                    me.config.viewerController.setLayerVisible(appLayer, checked);                    
                 });
             });
         }
+        this.alignContainer();
     },
     
     layerVisibilityChanged: function(map, event) {
 
-        var eventLevel = this.viewerController.getAppLayerParent(event.layer.id);
+        var eventLevel = this.config.viewerController.getAppLayerParent(event.layer.id);
         var backgroundLevel = null;
         Ext.each(this.selectedBackgroundLevels, function(level) {
             if(level == eventLevel) {
@@ -183,6 +214,6 @@ Ext.define ("viewer.components.LayerSwitch",{
     },
     
     getExtComponents: function() {
-        return [this.button];
+        return [ this.container ];
     }
 });

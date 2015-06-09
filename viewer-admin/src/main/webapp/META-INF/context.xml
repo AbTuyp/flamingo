@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- crossContext="true" is required to enable the viewer-admin to load the 
+<!-- crossContext="true" is required to enable the viewer-admin to load the
   components.json file and component config javascript sources from the viewer -->
 <Context antiJARLocking="true" crossContext="true" disableURLRewriting="true" path="/viewer-admin">
+  <Parameter name="componentregistry.path" override="false" value="/viewer-html/components"/>
   <!-- Customized context parameters; see web.xml -->
   <!--Parameter name="viewer.url" value="/viewer" override="false"/-->
   <!--Parameter name="monitoring.mail.from.email" value="no-reply@b3partners.nl" override="false"/-->
@@ -32,11 +33,11 @@
     -->
   <!-- Tomcat resource link -->
   <!-- For Tomcat: define JavaMail resource in server.xml. See:
-    
+
     http://tomcat.apache.org/tomcat-6.0-doc/jndi-resources-howto.html#JavaMail_Sessions
-         
+
     Don't forget to put mail.jar in the Tomcat lib directory.
-         
+
     To configure your mail server, use attributes like "mail.smtp.host" for
     the Resource element. See Appendix A of the JavaMail spec for which
     attributes you can use, possibly accessible at
@@ -44,12 +45,12 @@
 
     <Server ...>
         ...
-        <GlobalNamingResources>        
-            <Resource name="mail/session" 
+        <GlobalNamingResources>
+            <Resource name="mail/session"
                     auth="Container"
                     type="javax.mail.Session"
                     mail.smtp.host="smtp.mycompany.com"
-            />        
+            />
         </GlobalNamingResources>
         ...
     </Server>

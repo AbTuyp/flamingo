@@ -65,6 +65,14 @@ Ext.define("viewer.components.CustomConfiguration",{
             value: this.configObject.heightDescription != undefined ? this.configObject.heightDescription : "",
             labelWidth: this.labelWidth
         },{
+            xtype: 'checkbox',
+            fieldLabel: '"null" waarden verbergen',
+            name: 'detailHideNullValues',
+            id: 'detailHideNullValues',
+            inputValue: true,
+            checked: this.configObject.detailHideNullValues !== undefined ? this.configObject.detailHideNullValues : false,
+            labelWidth:this.labelWidth
+        },{
             xtype: 'label',
             text: 'Bepaal hieronder wat er wordt getoond in het detail scherm (na klikken op \'link naar meer\')',
             style: {
@@ -130,6 +138,9 @@ Ext.define("viewer.components.CustomConfiguration",{
     layerFilter: function(layers){
         var filteredLayers=[];
         for (var i in layers){
+            if(!layers.hasOwnProperty(i)) {
+                continue;
+            }
             var l = layers[i];
             //check if layer has something to show in the maptip
             if (l && l.details !=undefined &&

@@ -25,10 +25,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <stripes:layout-component name="body">
 
 <div id="formcontent">
-<p>
-    <stripes:errors/>
-    <stripes:messages/>
-</p>
+<stripes:errors/>
+<stripes:messages/>
 
 <stripes:form beanclass="nl.b3p.viewer.admin.stripes.GeoServiceActionBean">
 
@@ -80,6 +78,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             Ext.fly('serviceBboxTr').setVisibilityMode(Ext.Element.DISPLAY).setVisible(protocol == "tiled");
             Ext.fly('extensionTr').setVisibilityMode(Ext.Element.DISPLAY).setVisible(protocol == "tiled");
             Ext.fly('crsTr').setVisibilityMode(Ext.Element.DISPLAY).setVisible(protocol == "tiled");
+            Ext.fly('useProxy').setVisibilityMode(Ext.Element.DISPLAY).setVisible(protocol == "wms");
         }
         Ext.onReady(function() {
             appendPanel('headertext', 'formcontent');
@@ -119,6 +118,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 <label>
                     <stripes:checkbox name="overrideUrl"/> Gebruik altijd ingevulde URL in plaats van URLs in GetCapabilities
                 </label>
+            </td>
+        </tr>
+        <tr id="useUrlTr">     
+            <td>Exceptiontype:</td>
+            <td>
+                <stripes:select name="exception_type" value="Inimage"  id="exception_type">
+                    <stripes:option value="-1">Kies..</stripes:option>
+                    <stripes:options-enumeration enum="nl.b3p.viewer.config.services.WMSExceptionType"  />
+                </stripes:select>
             </td>
         </tr>
         <tr id="serviceNameTr">
@@ -199,6 +207,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 <stripes:checkbox name="useIntersect"/> Gebruik 'intersect' filter (in plaats van 'DWithin') om data op te halen.
             </td>
         </tr>
+        <tr id="useProxy">
+            <td colspan="2">
+                <stripes:checkbox name="useProxy"/> Gebruik proxy om kaarten op te halen.
+            </td>
+        </tr>
         <c:if test="${!edit}">
             <tr>
                 <td colspan="2"><i>De weergavenaam wordt bij het inladen van de service
@@ -247,7 +260,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 <c:if test="${actionBean.protocol == 'wms'}">
     <script type="text/javascript">
         Ext.onReady(function() {
-
             var panel = Ext.create('Ext.panel.Panel', {
                 width: '100%',
                 renderTo: Ext.getBody(),
@@ -255,11 +267,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 padding: '10 0 0 0',
                 contentEl: Ext.getDom('sldcontent')
             });
-
-            Ext.EventManager.onWindowResize(function () {
+            Ext.on('resize', function () {
                 panel.doLayout();
             });                
-            Ext.EventManager.fireResize();            
+            panel.doLayout();
         });
     </script>
     <div id="sldcontent" class="insidePanel" style="margin: 5px">

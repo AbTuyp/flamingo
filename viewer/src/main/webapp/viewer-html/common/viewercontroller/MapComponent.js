@@ -30,6 +30,7 @@ Ext.define("viewer.viewercontroller.MapComponent",{
      */    
     constructor :function (viewerController,domId,config){
         //init values
+        viewer.viewercontroller.MapComponent.superclass.constructor.call(this, config);
         this.eventList={};
         this.maps=[];
         this.tools=[];
@@ -39,7 +40,6 @@ Ext.define("viewer.viewercontroller.MapComponent",{
         this.initConfig(config);
         this.initEvents();
         this.viewerController=viewerController;
-        this.addEvents(viewer.viewercontroller.controller.Event.ON_CONFIG_COMPLETE);    
         return this;
     },
        
@@ -305,8 +305,10 @@ Ext.define("viewer.viewercontroller.MapComponent",{
             this.initEvents();
         }
         for( var key in this.eventList){
-            if(this.eventList[key] == specific){
-                return key;
+            if(this.eventList.hasOwnProperty(key)) {
+                if(this.eventList[key] == specific){
+                    return key;
+                }
             }
         }
         return null;

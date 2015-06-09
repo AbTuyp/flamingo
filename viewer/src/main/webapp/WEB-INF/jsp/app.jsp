@@ -1,5 +1,5 @@
 <%--
-Copyright (C) 2011-2013 B3Partners B.V.
+Copyright (C) 2011-2014 B3Partners B.V.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -19,12 +19,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 <%@include file="/WEB-INF/jsp/taglibs.jsp"%>
 
 <!DOCTYPE html>
-<html>
+<html class="x-border-box">
     <head>
         <title><c:out value="${actionBean.application.name}"/></title>
-               
+
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        
+
 		<script type="text/javascript">
 			var MobileManager = function() {
                 // Originial script: http://detectmobilebrowsers.com
@@ -32,7 +32,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 var ios = /ip(ad|hone|od)/i.test(navigator.userAgent);
                 var android = /android/i.test(navigator.userAgent);
                 var currentPopup = null;
-                var hammerMask = null;
                 var closePopup = function() {
                     currentPopup.hide();
                 };
@@ -40,28 +39,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     isMobile: function() { return mobile${param.mobile == true ? ' || true' : ''}; },
                     isIOS: function() { return ios; },
                     isAndroid: function() { return android; },
-                    getOrientation: function() { return (ios ? ( window.orientation == 90 || window.orientation == -90 ) : ( screen.width > screen.height )) ? 'landscape' : 'portrait'; },
-					hasHammer: function () { return (typeof Hammer !== "undefined"); },
-                    closePopupOnTapMask: function(popupWin) {
-                        var me = this;
-                        if(!me.hasHammer()) return;
-                        currentPopup = popupWin;
-                        if(hammerMask === null) {
-                            hammerMask = new Hammer(document.getElementById(popupWin.zIndexManager.mask.id), { prevent_default: true });
-                            hammerMask.ontap = function(ev) {
-                                closePopup();
-                            };
-                        }
-                    }
+                    getOrientation: function() { return (ios ? ( window.orientation == 90 || window.orientation == -90 ) : ( screen.width > screen.height )) ? 'landscape' : 'portrait'; }
                 };
             }();
-			if(!MobileManager.isMobile()) {
-				document.write('<link rel="stylesheet" type="text/css" href="${contextPath}/extjs/resources/css/ext-all-gray.css">');
-			} else {
-				document.write('<link rel="stylesheet" type="text/css" href="${contextPath}/extjs/resources/css/ext-all-mobile.css">');
-			}
+                    if(!MobileManager.isMobile()) {
+                            document.write('<link rel="stylesheet" type="text/css" href="${contextPath}/extjs/resources/css/crisp/ext-theme-crisp-all.css">');
+                    } else {
+                            // IOS7 on iPad has an issue with height of the html/body
+                            // http://stackoverflow.com/questions/19012135/ios-7-ipad-safari-landscape-innerheight-outerheight-layout-issue
+                            // To resolve this issue we add a class to the HTML tag and set a fixed height for the wrapper + disable touch on html element (to prevent scroll / bounce effect)
+                            if (navigator.userAgent.match(/iPad;.*CPU.*OS 7_\d/i) && !window.navigator.standalone) {
+                                document.documentElement.className += ' ipad ios7';
+                                document.ontouchmove = function(event){
+                                    event.preventDefault();
+                                };
+                            }
+                            document.documentElement.className += ' mobile-mode';
+                            document.write('<link rel="stylesheet" type="text/css" href="${contextPath}/extjs/resources/css/touch-crisp/ext-theme-crisp-touch-all.css">');
+                    }
 		</script>
-        
+
         <link href="${contextPath}/resources/css/viewer.css" rel="stylesheet">
 
         <%--XXX must only be loaded if component is added --%>
@@ -69,16 +66,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <link href="${contextPath}/viewer-html/components/resources/css/featureinfo.css" rel="stylesheet">
         <link href="${contextPath}/viewer-html/components/resources/css/relatedDocuments.css" rel="stylesheet">
         <link href="${contextPath}/viewer-html/components/resources/css/logger.css" rel="stylesheet">
-        
+
         <script type="text/javascript" src="${contextPath}/extjs/ext-all${param.debug == true ? '-debug' : ''}.js"></script>
-        <script type="text/javascript" src="${contextPath}/extjs/locale/ext-lang-nl.js"></script>
-        
+        <script type="text/javascript" src="${contextPath}/extjs/locale/ext-locale-nl.js"></script>
+
         <script type="text/javascript" src="${contextPath}/viewer-html/common/proj4js-compressed.js"></script>
-        
+
         <c:if test="${actionBean.viewerType == 'flamingo'}">
             <script type="text/javascript" src="${contextPath}/viewer-html/common/swfobject.js"></script>
         </c:if>
-        <c:if test="${actionBean.viewerType == 'openlayers'}">                 
+        <c:if test="${actionBean.viewerType == 'openlayers'}">
             <link href="${contextPath}/viewer-html/common/resources/css/openlayers.css" rel="stylesheet">
 
             <c:choose>
@@ -93,28 +90,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
         <c:choose>
             <c:when test="${!(param.debug == true)}">
-                <script type="text/javascript" src="${contextPath}/viewer-html/viewer-min.js"></script>                
-                <script type="text/javascript" src="${contextPath}/viewer-html/${actionBean.viewerType}-min.js"></script>                
+                <script type="text/javascript" src="${contextPath}/viewer-html/viewer-min.js"></script>
+                <script type="text/javascript" src="${contextPath}/viewer-html/${actionBean.viewerType}-min.js"></script>
             </c:when>
             <c:otherwise>
                 <%-- Also add scripts to <projectdir>/minify/build.xml, so it's build as minified for non debug use --%>
-                
+
                 <script type="text/javascript" src="${contextPath}/viewer-html/common/viewercontroller/ViewerController.js"></script>
                 <script type="text/javascript" src="${contextPath}/viewer-html/common/viewercontroller/MapComponent.js"></script>
-                
+
                 <script type="text/javascript" src="${contextPath}/viewer-html/components/Component.js"></script>
                 <script type="text/javascript" src="${contextPath}/viewer-html/components/LogMessage.js"></script>
                 <script type="text/javascript" src="${contextPath}/viewer-html/components/Logger.js"></script>
                 <script type="text/javascript" src="${contextPath}/viewer-html/components/RequestManager.js"></script>
                 <script type="text/javascript" src="${contextPath}/viewer-html/components/DataSelectionChecker.js"></script>
-                
+
                 <script type="text/javascript" src="${contextPath}/viewer-html/common/overrides.js"></script>
                 <script type="text/javascript" src="${contextPath}/viewer-html/common/ScreenPopup.js"></script>
                 <script type="text/javascript" src="${contextPath}/viewer-html/common/CQLFilterWrapper.js"></script>
-                <script type="text/javascript" src="${contextPath}/viewer-html/common/MobileSlider.js"></script>
-                <script type="text/javascript" src="${contextPath}/viewer-html/common/Combobox.js"></script>
-                <script type="text/javascript" src="${contextPath}/viewer-html/common/MobileCombobox.js"></script>
-                
+
                 <c:set var="scriptDir" value="${contextPath}/viewer-html/common/ajax"/>
                 <script type="text/javascript" src="${scriptDir}/ServiceInfo.js"></script>
                 <script type="text/javascript" src="${scriptDir}/CSWClient.js"></script>
@@ -127,14 +121,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
        			<script type="text/javascript" src="${scriptDir}/EditFeature.js"></script>
        			<script type="text/javascript" src="${scriptDir}/ArcQueryUtil.js"></script>
        			<script type="text/javascript" src="${scriptDir}/Twitter.js"></script>
-                
+
                 <c:set var="scriptDir" value="${contextPath}/viewer-html/common/viewercontroller/controller"/>
                 <script type="text/javascript" src="${scriptDir}/Map.js"></script>
                 <script type="text/javascript" src="${scriptDir}/Layer.js"></script>
                 <script type="text/javascript" src="${scriptDir}/TilingLayer.js"></script>
                 <script type="text/javascript" src="${scriptDir}/WMSLayer.js"></script>
-                <script type="text/javascript" src="${scriptDir}/ImageLayer.js"></script>                
-                <script type="text/javascript" src="${scriptDir}/VectorLayer.js"></script>                
+                <script type="text/javascript" src="${scriptDir}/ImageLayer.js"></script>
+                <script type="text/javascript" src="${scriptDir}/VectorLayer.js"></script>
                 <script type="text/javascript" src="${scriptDir}/ArcLayer.js"></script>
                 <script type="text/javascript" src="${scriptDir}/Feature.js"></script>
                 <script type="text/javascript" src="${scriptDir}/MapTip.js"></script>
@@ -143,9 +137,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 <script type="text/javascript" src="${scriptDir}/Tool.js"></script>
                 <script type="text/javascript" src="${scriptDir}/Component.js"></script>
                 <script type="text/javascript" src="${scriptDir}/ToolMapClick.js"></script>
-                
+
                 <c:choose>
-                    <c:when test="${actionBean.viewerType == 'openlayers'}"> 
+                    <c:when test="${actionBean.viewerType == 'openlayers'}">
                         <c:set var="scriptDir" value="${contextPath}/viewer-html/common/viewercontroller/openlayers"/>
                         <script type="text/javascript" src="${scriptDir}/OpenLayersLayer.js"></script>
                         <script type="text/javascript" src="${scriptDir}/OpenLayersArcLayer.js"></script>
@@ -159,19 +153,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         <script type="text/javascript" src="${scriptDir}/OpenLayersMap.js"></script>
                         <script type="text/javascript" src="${scriptDir}/Utils.js"></script>
                         <script type="text/javascript" src="${scriptDir}/ToolMapClick.js"></script>
-                        
+
                         <script type="text/javascript" src="${scriptDir}/OpenLayersComponent.js"></script>
 
                         <script type="text/javascript" src="${scriptDir}/OpenLayersMapComponent.js"></script>
-                        
+
                         <!-- The components -->
                         <script type="text/javascript" src="${scriptDir}/components/LoadingPanel.js"></script>
                         <script type="text/javascript" src="${scriptDir}/components/OpenLayersBorderNavigation.js"></script>
                         <script type="text/javascript" src="${scriptDir}/components/OpenLayersLoadMonitor.js"></script>
                         <script type="text/javascript" src="${scriptDir}/components/OpenLayersOverview.js"></script>
                         <script type="text/javascript" src="${scriptDir}/components/OpenLayersMaptip.js"></script>
-                        
-                        <!-- The tools -->                        
+
+                        <!-- The tools -->
                         <script type="text/javascript" src="${scriptDir}/tools/OpenLayersIdentifyTool.js"></script>
                         <script type="text/javascript" src="${scriptDir}/tools/OpenLayersDefaultTool.js"></script>
                     </c:when>
@@ -191,11 +185,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
                         <script type="text/javascript" src="${scriptDir}/FlamingoComponent.js"></script>
 
-                        <script type="text/javascript" src="${scriptDir}/FlamingoMapComponent.js"></script> 
-                        
+                        <script type="text/javascript" src="${scriptDir}/FlamingoMapComponent.js"></script>
+
                         <!-- The components -->
                         <script type="text/javascript" src="${scriptDir}/components/Overview.js"></script>
-                        
+
                         <script type="text/javascript" src="${scriptDir}/tools/JSButton.js"></script>
                         <script type="text/javascript" src="${scriptDir}/tools/FlamingoMeasureArea.js"></script>
                     </c:otherwise>
@@ -203,21 +197,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
             </c:otherwise>
         </c:choose>
-                
+
 		<script type="text/javascript">
 			if(MobileManager.isMobile()) {
 				document.write('<meta name="HandheldFriendly" content="True">');
 				document.write('<meta name="MobileOptimized" content="width=device-width; height=device-height; user-scalable=no; initial-scale=1.0; maximum-scale=1.0; minimum-scale=1.0">');
 				document.write('<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">');
 				document.write('<meta http-equiv="cleartype" content="on">');
-				document.write('<script type="text/javascript" src="${contextPath}/resources/js/hammer.js"></' + 'script>');
-				document.write('<link href="${contextPath}/resources/css/mobile.css" rel="stylesheet">');
 			}
 		</script>
         <script type="text/javascript" src="${contextPath}/viewer-html/common/layout.js"></script>
 
         <%@include file="app/style.jsp" %>
-        
+
         ${actionBean.componentSourceHTML}
     </head>
     <body>
@@ -225,18 +217,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             <div id="loader">Loading...</div>
         </div>
         <script type="text/javascript">
-            
+
             if(console == undefined) {
                 var console = {};
                 console.log = function(logmsg) {
                     //alert(logmsg);
                 };
             }
-            
+
             var contextPath = "${contextPath}";
             var absoluteURIPrefix = "${absoluteURIPrefix}";
 
-            var actionBeans = { 
+            var actionBeans = {
                 "service":            <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.ServiceActionBean"/></js:quote>,
                 "feature":            <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.FeatureActionBean"/></js:quote>,
                 "sld":                <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.SldActionBean"/></js:quote>,
@@ -252,7 +244,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 "csw":                <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.CatalogSearchActionBean"/></js:quote>,
                 "advancedcsw":        <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.CatalogSearchActionBean" event="advancedSearch"/></js:quote>,
                 "unique":             <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.UniqueValuesActionBean"/></js:quote>,
-                "twitter":            <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.TwitterActionBean"/></js:quote>, 
+                "twitter":            <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.TwitterActionBean"/></js:quote>,
                 "arcqueryutil":       <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.ArcQueryUtilActionBean"/></js:quote>,
                 "proxy":              <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.ProxyActionBean"/></js:quote>,
                 "datastorespinup":    <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.DataStoreSpinupActionBean"/></js:quote>,
@@ -260,21 +252,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 "componentresource":  <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.ComponentResourceActionBean"/></js:quote>,
                 "css":                 <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.CSSActionBean"/></js:quote>,
                 "download":            <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.DownloadFeaturesActionBean"/></js:quote>,
-                "buffergeom":          <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.BufferActionBean" event="bufferGeometry"/></js:quote>
+                "buffergeom":          <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.BufferActionBean" event="bufferGeometry"/></js:quote>,
+                "cyclorama":          <js:quote><stripes:url beanclass="nl.b3p.viewer.stripes.CycloramaActionBean"/></js:quote>
             };
-            
-            <c:if test="${actionBean.viewerType == 'openlayers'}">            
+
+            <c:if test="${actionBean.viewerType == 'openlayers'}">
                 <%-- XXX maybe do this in the OpenLayersMapComponent; also check theme! --%>
                 // tell OpenLayers where the control images are, remember the trailing slash
                 OpenLayers.ImgPath = "${contextPath}/resources/images/openlayers_img/";
+                /* Override util class OpenLayers to comply to ExtJS id regex */
+                OpenLayers.Util.createUniqueID = function(prefix) {
+                    if (prefix == null) {
+                        prefix = "id_";
+                    }
+                    OpenLayers.Util.lastSeqID += 1;
+                    // Added this replace, to make sure there are no dots in the ID
+                    return prefix.replace(/\./g, '_') + OpenLayers.Util.lastSeqID;        
+                };
             </c:if>
-           
+
             var user = null;
-            
+
             var updateLoginInfo = function() { };
             <c:if test="${actionBean.user != null}">
                 user = ${actionBean.user};
-                
+
                 updateLoginInfo = function() {
                     var link = document.getElementById("loginLink");
                     if(link) {
@@ -287,26 +289,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     }
                 }
             </c:if>
-            
+
             function login() {
                 window.location.href = <js:quote><stripes:url prependContext="true" value="${actionBean.loginUrl}"/></js:quote>;
             }
-            
+
             function logout() {
-                window.location.href = 
+                window.location.href =
                     <js:quote><stripes:url prependContext="true" value="${actionBean.loginUrl}">
                         <stripes:param name="logout" value="true"/></stripes:url></js:quote>;
             }
-             
+
             var appId = "${actionBean.application.id}";
             var viewerController;
             (function() {
                 var config = ${actionBean.appConfigJSON};
-          
+
                 Ext.onReady(function() {
-                    
+
                     var viewerType = <js:quote value="${actionBean.viewerType}"/>;
-                    
+
                     var listeners = {
                         // Cannot use viewer.viewercontroller.controller.Event.ON_COMPONENTS_FINISHED_LOADING for property name here
                         "ON_COMPONENTS_FINISHED_LOADING": updateLoginInfo
@@ -318,17 +320,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     viewerController = new viewer.viewercontroller.ViewerController(viewerType, null, config, listeners,mapConfig);
                     if(!MobileManager.isMobile() || MobileManager.isAndroid() || window.onorientationchange === undefined) {
                         // Android devices seem to react better to window.resize than window.orientationchange, probably timing issue
-                        Ext.EventManager.onWindowResize(function () {
+                        Ext.on('resize', function () {
                             viewerController.resizeComponents(true);
                         });
                     } else {
-                        window.onorientationchange = function(){
-                            viewerController.resizeComponents();
+                        // Listen for orientation changes
+                        if(window.addEventListener) {
+                            window.addEventListener("orientationchange", function() {
+                                viewerController.resizeComponents(true);
+                            }, false);
                         }
                     }
                 });
             }());
-            
+
         </script>
 
         <c:set var="maxWidth" value="none" />
@@ -364,6 +369,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             </c:if>
         </c:forEach>
         <div id="wrapper" style="width: 100%; height: 100%; max-width: ${maxWidth}; max-height: ${maxHeight}; margin-left: auto; margin-right: auto; padding: ${margin}; background-color: ${backgroundColor}; background-image: ${backgroundImage}; background-repeat: ${backgroundRepeat}; background-position: ${backgroundPosition};"></div>
-        
+
     </body>
 </html>

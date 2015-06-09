@@ -25,7 +25,7 @@ Ext.define ("viewer.components.RequestManager",{
     constructor: function(featureInfo,viewerController){
         this.previousRequests = new Object();
         this.featureInfo = featureInfo;
-        this.viewerController = viewerController;
+        this.config.viewerController = viewerController;
     },
     request: function(id, options, radius, layers, callback, failure) {
         var me = this;
@@ -47,7 +47,9 @@ Ext.define ("viewer.components.RequestManager",{
             
             if(request){
                 this.previousRequests[id].requests.push(request);
-                this.viewerController.mapComponent.setCursor(true, "wait");
+                if(options.useCursorForWaiting){
+                    this.config.viewerController.mapComponent.setCursor(true, "wait");
+                }
                 this.previousRequests[id].total++;
             }
         }
@@ -56,13 +58,16 @@ Ext.define ("viewer.components.RequestManager",{
     responseReceived: function (id){
         this.previousRequests[id].done++;
         if(this.previousRequests[id].done === this.previousRequests[id].total){
-            this.viewerController.mapComponent.setCursor(false);
+            this.config.viewerController.mapComponent.setCursor(false);
         }
     },
     
     cancelPrevious : function(currentId){
         for( var id in this.previousRequests){
-            if(id !== currentId){
+            if(!this.previousRequests.hasOwnProperty(id)) {
+                continue;
+            }
+            if(id !== currentId) {
                 this.cancel(id);
                 delete this.previousRequests[id];
             }

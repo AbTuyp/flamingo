@@ -28,8 +28,8 @@ Ext.define ("viewer.components.ExtentFilter",{
         this.initConfig(conf);
         this.layers = [];
         this.initializeLayers();
-        this.viewerController.addListener(viewer.viewercontroller.controller.Event.ON_SELECTEDCONTENT_CHANGE,this.initializeLayers,this );
-        this.viewerController.mapComponent.getMap().addListener(viewer.viewercontroller.controller.Event.ON_FINISHED_CHANGE_EXTENT, this.changedExtent, this);
+        this.config.viewerController.addListener(viewer.viewercontroller.controller.Event.ON_SELECTEDCONTENT_CHANGE,this.initializeLayers,this );
+        this.config.viewerController.mapComponent.getMap().addListener(viewer.viewercontroller.controller.Event.ON_FINISHED_CHANGE_EXTENT, this.changedExtent, this);
         return this;
     },
     changedExtent:function(map,obj){
@@ -43,7 +43,7 @@ Ext.define ("viewer.components.ExtentFilter",{
     initializeLayers : function(){
         this.layers = [];
         var me = this;
-        this.viewerController.traverseSelectedContent(Ext.emptyFn, function(appLayer) {
+        this.config.viewerController.traverseSelectedContent(Ext.emptyFn, function(appLayer) {
             me.layers.push(appLayer);
         });
     },

@@ -21,6 +21,7 @@ import javax.persistence.*;
 import nl.b3p.viewer.config.ClobElement;
 import nl.b3p.viewer.config.security.Authorizations;
 import nl.b3p.viewer.config.security.Authorizations.ReadWrite;
+import nl.b3p.viewer.util.DB;
 import nl.b3p.viewer.util.SelectedContentCache;
 import nl.b3p.web.WaitPageStatus;
 import org.apache.commons.lang3.StringUtils;
@@ -38,11 +39,13 @@ import org.stripesstuff.stripersist.Stripersist;
 @DiscriminatorColumn(name="protocol")
 public abstract class GeoService {
     public static final String PARAM_ONLINE_CHECK_ONLY = "onlineCheckOnly";
+    public static final String PARAM_MUST_LOGIN = "mustLogin";
     
     public static final String DETAIL_OVERRIDDEN_URL = "overridenUrl";
     public static final String DETAIL_ORIGINAL_NAME = "originalName";
     
     public static final String DETAIL_USE_INTERSECT = "useIntersect";
+    public static final String DETAIL_USE_PROXY = "useProxy";
     
     @Id
     private Long id;
@@ -353,6 +356,23 @@ public abstract class GeoService {
         o.put("name", name);
         o.put("url", url);
         o.put("protocol", getProtocol());
+
+
+
+        if (details.containsKey(GeoService.DETAIL_USE_PROXY)) {
+            ClobElement ce = details.get(GeoService.DETAIL_USE_PROXY);
+            boolean useProxy = Boolean.parseBoolean(ce.getValue());
+            o.put(GeoService.DETAIL_USE_PROXY, useProxy);
+            if(getPassword() != null && getUsername() != null){
+                o.put(PARAM_MUST_LOGIN, true);
+            }
+        }else{
+            o.put(GeoService.DETAIL_USE_PROXY, false);
+        }
+        if(this instanceof WMSService){
+            WMSExceptionType extype = ((WMSService)this).getException_type() != null ? ((WMSService)this).getException_type() : WMSExceptionType.Inimage;
+            o.put("exception_type", extype.getDescription());
+        }
         
         if (!validXmlTags){
             JSONObject jStyleLibraries = new JSONObject();
@@ -390,11 +410,16 @@ public abstract class GeoService {
 
                 if(!layerEntities.isEmpty()) {
                     // Prevent n+1 queries
-                    Stripersist.getEntityManager().createQuery("from Layer l "
-                            + "left join fetch l.details "
-                            + "where l in (:layers)")
-                            .setParameter("layers", layerEntities)
-                            .getResultList();
+                    int i = 0;
+                    do {
+                        List<Layer> subList = layerEntities.subList(i, Math.min(layerEntities.size(), i+DB.MAX_LIST_EXPRESSIONS));
+                        Stripersist.getEntityManager().createQuery("from Layer l "
+                                + "left join fetch l.details "
+                                + "where l in (:layers)")
+                                .setParameter("layers", subList)
+                                .getResultList();
+                        i += subList.size();
+                    } while(i < layerEntities.size());
                 }
             }
 

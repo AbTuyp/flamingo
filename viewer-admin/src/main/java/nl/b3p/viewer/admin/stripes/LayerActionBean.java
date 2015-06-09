@@ -43,7 +43,8 @@ public class LayerActionBean implements ActionBean {
     @Validate
     @ValidateNestedProperties({
         @Validate(field = "titleAlias", label="Naam"),
-        @Validate(field = "legendImageUrl", label="Legenda")
+        @Validate(field = "legendImageUrl", label="Legenda"),
+        @Validate(field = "exception_type")
     })
     private Layer layer;
     @Validate
@@ -245,7 +246,7 @@ public class LayerActionBean implements ActionBean {
         layer.getService().authorizationsModified();
         List<Application> apps = findApplications();
         for (Application application : apps) {
-            SelectedContentCache.setApplicationCacheDirty(application, true);
+            SelectedContentCache.setApplicationCacheDirty(application, true, false);
         }
         Stripersist.getEntityManager().getTransaction().commit();
         getContext().getMessages().add(new SimpleMessage("De kaartlaag is opgeslagen"));

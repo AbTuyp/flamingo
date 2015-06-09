@@ -24,6 +24,7 @@ import nl.b3p.viewer.config.security.Authorizations;
 import nl.b3p.viewer.config.security.User;
 import nl.b3p.viewer.config.services.BoundingBox;
 import nl.b3p.viewer.config.services.GeoService;
+import nl.b3p.viewer.util.DB;
 import nl.b3p.viewer.util.SelectedContentCache;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.logging.Log;
@@ -251,6 +252,36 @@ public class Application {
         public List<Level> getLevels() {
             return levels;
         }
+
+        public void initializeLevels(String leftJoins) {
+            // Prevent n+1 queries for each level
+            int i = 0;
+            do {
+                List<Level> subList = levels.subList(i, Math.min(levels.size(), i+DB.MAX_LIST_EXPRESSIONS));
+                Stripersist.getEntityManager().createQuery("from Level l "
+                        + leftJoins + " "
+                        + "where l in (:levels) ")
+                        .setParameter("levels", subList)
+                        .getResultList();
+                i += subList.size();
+            } while(i < levels.size());
+        }
+
+        public void initializeApplicationLayers(String leftJoins) {
+            if (!getApplicationLayers().isEmpty()) {
+                // Prevent n+1 queries for each ApplicationLayer
+                int i = 0;
+                do {
+                    List<ApplicationLayer> subList = applicationLayers.subList(i, Math.min(applicationLayers.size(), i+DB.MAX_LIST_EXPRESSIONS));
+                    Stripersist.getEntityManager().createQuery("from ApplicationLayer al "
+                            + leftJoins + " "
+                            + "where al in (:alayers) ")
+                            .setParameter("alayers", subList)
+                            .getResultList();
+                    i += subList.size();
+                } while(i < applicationLayers.size());
+            }
+        }
     }
     
     @Transient
@@ -266,13 +297,8 @@ public class Application {
                 .setParameter("rootId", root.getId())
                 .getResultList();
             
-            // Prevent n+1 queries for each level            
-            Stripersist.getEntityManager().createQuery("from Level l "
-                    + "left join fetch l.layers "
-                    + "where l in (:levels) ")
-                    .setParameter("levels", treeCache.levels)
-                    .getResultList();    
-            
+            treeCache.initializeLevels("left join fetch l.layers");
+
             treeCache.childrenByParent = new HashMap();
             treeCache.applicationLayers = new ArrayList();
             
@@ -297,15 +323,18 @@ public class Application {
         authorizationsModified = new Date();
     }
     
+    public String toJSON(HttpServletRequest request, boolean validXmlTags, boolean onlyServicesAndLayers) throws JSONException {
+        return toJSON(request, validXmlTags, onlyServicesAndLayers, false, false);
+    }
+    
     /**
      * Create a JSON representation for use in browser to start this application
      * @return
      */
-    public String toJSON(HttpServletRequest request, boolean validXmlTags, boolean onlyServicesAndLayers) throws JSONException {
-      
+    public String toJSON(HttpServletRequest request, boolean validXmlTags, boolean onlyServicesAndLayers, boolean includeAppLayerAttributes, boolean includeRelations) throws JSONException {
         JSONObject o = null;
         SelectedContentCache cache = new SelectedContentCache();
-        o = cache.getSelectedContent(request, this, validXmlTags);
+        o = cache.getSelectedContent(request, this, validXmlTags, includeAppLayerAttributes, includeRelations);
        
         o.put("id", id);
         o.put("name", name);
@@ -331,7 +360,7 @@ public class Application {
                 o.put("maxExtent", maxExtent.toJSONObject());
             }
         }
-       
+
         if (!onlyServicesAndLayers){
             // Prevent n+1 query for ConfiguredComponent.details
             Stripersist.getEntityManager().createQuery(
@@ -351,7 +380,7 @@ public class Application {
         return o.toString(4);
     }
     
-    private void walkAppTreeForJSON(JSONObject levels, JSONObject appLayers, List selectedContent, Level l, boolean parentIsBackground, HttpServletRequest request, boolean validXmlTags) throws JSONException {
+    private void walkAppTreeForJSON(JSONObject levels, JSONObject appLayers, List selectedContent, Level l, boolean parentIsBackground, HttpServletRequest request, boolean validXmlTags, boolean includeAppLayerAttributes, boolean includeRelations) throws JSONException {
         JSONObject o = l.toJSONObject(false, this, request);
         o.put("background", l.isBackground() || parentIsBackground);
         String levelId= l.getId().toString();
@@ -369,7 +398,7 @@ public class Application {
                 //System.out.printf("Application layer %d (service #%s %s layer %s) in level %d %s unauthorized\n", al.getId(), al.getService().getId(), al.getService().getName(), al.getLayerName(), l.getId(), l.getName());
                 continue;
             }
-            JSONObject p = al.toJSONObject();
+            JSONObject p = al.toJSONObject(includeAppLayerAttributes, includeRelations);
             p.put("background", l.isBackground() || parentIsBackground);
             p.put("editAuthorized", Authorizations.isAppLayerWriteAuthorized(this, al, request));
             String alId = al.getId().toString();
@@ -395,7 +424,7 @@ public class Application {
                         childId="level_"+childId;
                     }
                     jsonChildren.put(childId);
-                    walkAppTreeForJSON(levels, appLayers, selectedContent, child, l.isBackground(), request,validXmlTags);
+                    walkAppTreeForJSON(levels, appLayers, selectedContent, child, l.isBackground(), request,validXmlTags, includeAppLayerAttributes, includeRelations);
                 }
             }
         }

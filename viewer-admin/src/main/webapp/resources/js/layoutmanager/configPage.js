@@ -22,6 +22,9 @@ Ext.onReady(function(){
     if(showHelp()){
         createHelpTab();
     }
+    if(showConfigureHeight()) {
+        createHeightLayoutTab();
+    }
     if(metadata.configSource != undefined) {
         customConfiguration= new Ext.create("viewer.components.CustomConfiguration","config", configObject);
     } else {
@@ -57,12 +60,20 @@ Ext.onReady(function(){
                 title: 'Pas de instellingen aan',
                 renderTo: "config",
                 hideHeaders:true,
-                nameColumnWidth: 300,
+                scroll: 'vertical',
+                nameColumnWidth: 290,
+                columnWidth: 450,
                 source: extConfigSource,
-                propertyNames: propertyNames
+                propertyNames: propertyNames,
+                width: 740
             });
         }
-    
+        if(metadata.hasOwnProperty('helpText') && metadata.helpText) {
+            var helpDiv = document.createElement('div');
+            helpDiv.className = 'extra-help-text';
+            helpDiv.innerHTML = metadata.helpText;
+            document.getElementById('config').appendChild(helpDiv);
+        }
     }
 });
 function createHelpTab() {
@@ -110,7 +121,7 @@ function createHelpTab() {
     }); 
 }
 function createLayoutTab(){
-    if(details == undefined || details == null){
+    if(typeof details === "undefined" || details === null){
         details = {
             changeablePosition: "true",
             changeableSize: "true"
@@ -119,6 +130,24 @@ function createLayoutTab(){
     var labelWidth = 300;
     var centerChecked = details.position == "center";
     var fixedChecked = details.position == "fixed";
+    
+    var alignStore = Ext.create('Ext.data.ArrayStore', {
+        autoDestroy: true,
+        idIndex: 0,
+        fields: [{
+            name: 'name',
+            type: 'string'
+        }, {
+            name: 'value',
+            type: 'string'
+        }],
+        data: [
+            ['Links-boven', 'tl'],
+            ['Rechts-boven', 'tr'],
+            ['Links-onder', 'bl'],
+            ['Rechts-onder', 'br']
+        ]
+    });
     
     layoutForm = new Ext.form.FormPanel({
         frame: false,
@@ -177,6 +206,19 @@ function createLayoutTab(){
                 hidden : true,
                 labelWidth:100
             },
+            { 
+                xtype: 'combobox',
+                fieldLabel: 'Uitlijning',
+                id: "alignposition",
+                name: 'alignposition',
+                value: details.alignposition,
+                hidden : true,
+                labelWidth:100,
+                store: alignStore,
+                displayField: 'name',
+                valueField: 'value',
+                queryMode: 'local'
+            },
             {
                 xtype: 'checkbox',
                 fieldLabel: 'Gebruiker kan de positie van de popup aanpassen',
@@ -225,13 +267,44 @@ function createLayoutTab(){
     }
 }
 
+function createHeightLayoutTab() {
+    var compHeight = '';
+    if(configObject && configObject.hasOwnProperty('componentHeight')) {
+        compHeight = configObject.componentHeight;
+    }
+    var componentLayoutForm = new Ext.form.FormPanel({
+        frame: false,
+        width: 480,
+        border: 0,
+        items: [{
+            xtype:'fieldset',
+            columnWidth: 0.5,
+            title: 'Component afmetingen',
+            collapsible: false,
+            defaultType: 'textfield',
+            layout: 'anchor',
+            items:[{
+                xtype: 'numberfield',
+                fieldLabel: 'Hoogte (px)',
+                id: "componentHeight",
+                name: 'componentHeight',
+                value: compHeight,
+                labelWidth:100
+            }]
+        }],
+        renderTo: "component-layout"
+    }); 
+}
+
 function toggleXY(show){
     if(show){
         Ext.getCmp('x').show();
         Ext.getCmp('y').show();
+        Ext.getCmp('alignposition').show();
     }else{
         Ext.getCmp('x').hide();
         Ext.getCmp('y').hide();
+        Ext.getCmp('alignposition').hide();
     }
 }
 
@@ -292,6 +365,12 @@ function continueSave(config){
             config['showHelpButton'] = showHelpButton.getValue() ? "true" : "false";
         }
     }
+    if(showConfigureHeight()) {
+        var heightConfig = Ext.getCmp('componentHeight');
+        if(heightConfig && heightConfig.getValue() !== '') {
+            config['componentHeight'] = parseInt(heightConfig.getValue(), 10);
+        }
+    }
     var configFormObject = Ext.get("configObject");
     configFormObject.dom.value = JSON.stringify(config);
     document.getElementById('configForm').submit();
@@ -304,12 +383,28 @@ function showHelp() {
     return false;
 }
 
+function showConfigureHeight() {
+    var showComponentHeight = false,
+        heightRegions = ["leftmargin_top", "leftmargin_bottom", "rightmargin_top", "rightmargin_bottom"];
+    if(metadata.hasOwnProperty('restrictions')) {
+        for(x in metadata.restrictions) {
+            for(y in heightRegions) {
+                if(metadata.restrictions[x] === heightRegions[y]) {
+                    showComponentHeight = true;
+                }
+            }
+        }
+    }
+    return showComponentHeight;
+}
+
 Ext.onReady(function() {
-    Ext.select('.tabdiv', true).removeCls('tabdiv').addCls('x-hide-display');   
+    Ext.select('.tabdiv', true).removeCls('tabdiv').setVisibilityMode(Ext.dom.Element.OFFSETS).setVisible(false);
     var tabs = [], htmlEditorRendered = false;
     tabs = [{
         contentEl:'config', 
-        title: 'Configuratie'
+        title: 'Configuratie',
+        autoScroll: true
     },{
         contentEl:'rights', 
         title: 'Rechten'
@@ -317,6 +412,12 @@ Ext.onReady(function() {
     if(metadata.type != undefined && metadata.type == "popup"){
         tabs.push({
             contentEl:'layout', 
+            title: 'Layout'
+        });
+    }
+    if(showConfigureHeight()){
+        tabs.push({
+            contentEl:'component-layout', 
             title: 'Layout'
         });
     }

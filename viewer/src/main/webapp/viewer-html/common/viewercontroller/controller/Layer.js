@@ -48,20 +48,26 @@ Ext.define("viewer.viewercontroller.controller.Layer",{
      */
     getOption: function(optionKey){
         var availableOptions=""
-        for (var op in this.options){
-            if (op.toLowerCase()==optionKey.toLowerCase())
+        for (var op in this.options) {
+            if(!this.options.hasOwnProperty(op)) {
+                continue;
+            }
+            if (op.toLowerCase() === optionKey.toLowerCase())
                 return this.options[op];
             availableOptions+=op+",";
         }
         return null;
-    },    
+    },  
+    getFrameworkLayer: function() {
+        return this.frameworkLayer || this.config.frameworkLayer;
+    },
     /**
      * Because 1 layer is created per applayer (not combined) every layer has the id:
      * serviceId_appLayerName
      * To get the appLayerName the serviceId_ string needs to be removed.
      */
     getAppLayerName: function(){
-        return this.viewerController.app.appLayers[this.appLayerId].layerName;
+        return this.config.viewerController.app.appLayers[this.appLayerId].layerName;
     },   
     /**
      *Add a maptip to the layer
@@ -116,7 +122,7 @@ Ext.define("viewer.viewercontroller.controller.Layer",{
      */
     getDetails: function(){
         if (this.appLayerId){
-            return this.viewerController.app.appLayers[this.appLayerId].details;
+            return this.config.viewerController.app.appLayers[this.appLayerId].details;
         }else{
             return this.details;
         }
