@@ -9,13 +9,13 @@
     <parent>
         <groupId>org.flamingo-mc</groupId>
         <artifactId>flamingo-mc</artifactId>
-        <version>4.5.1-SNAPSHOT</version>
+        <version>4.5.4-SNAPSHOT</version>
     </parent>
     <name>viewer-config-persistence</name>
 
     <build>
         <plugins>
-            <!--plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>hibernate3-maven-plugin</artifactId>
                 <version>3.0</version>
@@ -43,7 +43,7 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin-->
+            </plugin>
         </plugins>
     </build>
 

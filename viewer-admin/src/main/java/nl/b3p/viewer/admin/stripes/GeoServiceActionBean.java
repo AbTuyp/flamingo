@@ -447,6 +447,7 @@ public class GeoServiceActionBean implements ActionBean {
 
             }else if(protocol.equals(WMSService.PROTOCOL)){
                 overrideUrl = ((WMSService)service).getOverrideUrl();
+                exception_type = ((WMSService)service).getException_type();
             }
 
             if(service.getDetails().containsKey(GeoService.DETAIL_USE_INTERSECT)){
@@ -509,7 +510,7 @@ public class GeoServiceActionBean implements ActionBean {
         // affect the selectedContent
         List<Application> apps = findApplications();
         for (Application application : apps) {
-            SelectedContentCache.setApplicationCacheDirty(application, true);
+            SelectedContentCache.setApplicationCacheDirty(application, true, false);
         }
         service.getDetails().put(GeoService.DETAIL_USE_INTERSECT, new ClobElement(""+useIntersect));
         service.getDetails().put(GeoService.DETAIL_USE_PROXY, new ClobElement(""+useProxy));
@@ -621,7 +622,7 @@ public class GeoServiceActionBean implements ActionBean {
 
         List<Application> apps = findApplications();
         for (Application application : apps) {
-            SelectedContentCache.setApplicationCacheDirty(application, true);
+            SelectedContentCache.setApplicationCacheDirty(application, true, false);
         }
 
         Stripersist.getEntityManager().getTransaction().commit();
@@ -681,6 +682,7 @@ public class GeoServiceActionBean implements ActionBean {
                 params.put(WMSService.PARAM_USERNAME, username);
                 params.put(WMSService.PARAM_PASSWORD, password);
                 service = new WMSService().loadFromUrl(url, params, status);
+                ((WMSService)service).setException_type(exception_type);
                 service.getDetails().put(GeoService.DETAIL_USE_PROXY, new ClobElement(""+useProxy));
             } else if (protocol.equals(ArcGISService.PROTOCOL)) {
                 params.put(ArcGISService.PARAM_USERNAME, username);

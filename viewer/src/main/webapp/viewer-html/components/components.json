@@ -226,7 +226,8 @@
                 magicnumber: "Delen door (berekend vanaf km)",
                 decimals: "Decimalen",
                 nonSticky: "Ga na gebruik naar de eerste tool",
-                decimalSeparator: "Scheidingsteken decimalen"
+                decimalSeparator: "Scheidingsteken decimalen",
+                addUnit: "Eigen eenheid toevoegen ipv vervangen"
             },
             source: {
                 tooltip: "Measure line",
@@ -234,10 +235,11 @@
                 decimals: 2,
                 magicnumber: "",
                 nonSticky: false,
-                decimalSeparator: ","
+                decimalSeparator: ",",
+                addUnit: false
             }
         },
-        helpText: "Om een eigen eenheid te gebruiken dient u zowel \"Eenheid\" and \"Delen door\" in te vullen."
+        helpText: "Om een eigen eenheid te gebruiken dient u zowel \"Eenheid\" and \"Delen door\" in te vullen. U kunt uw eigen gedefinieerde eenheid ook achter de standaard m/km tonen door 'Eigen eenheid toevoegen' op true te zetten."
     },
     {
         className: "viewer.components.tools.Measure.Area",
@@ -257,7 +259,8 @@
                 magicnumber: "Delen door (berekend vanaf km<sup>2</sup>)",
                 decimals: "Decimalen",
                 nonSticky: "Ga na gebruik naar de eerste tool",
-                decimalSeparator: "Scheidingsteken decimalen"
+                decimalSeparator: "Scheidingsteken decimalen",
+                addUnit: "Eigen eenheid toevoegen ipv vervangen"
             },
             source: {
                 tooltip: "Measure area",
@@ -265,10 +268,11 @@
                 decimals: 2,
                 magicnumber: "",
                 nonSticky: false,
-                decimalSeparator: ","
+                decimalSeparator: ",",
+                addUnit: false
             }
         },
-        helpText: "Indien u handmatig een eenheid opgeeft kunt u een superscript 2 krijgen (bijv. m<sup>2</sup>) door m&lt;sup&gt;2&lt;/sup&gt; op te geven bij eenheid. Bij \"Delen door\" wordt uitgegegaan van km<sup>2</sup>, dus om bijv. ha te krijgen moet er worden gedeeld door 100. Om een eigen eenheid te gebruiken dient u zowel \"Eenheid\" and \"Delen door\" in te vullen."
+        helpText: "Indien u handmatig een eenheid opgeeft kunt u een superscript 2 krijgen (bijv. m<sup>2</sup>) door m&lt;sup&gt;2&lt;/sup&gt; op te geven bij eenheid. Bij \"Delen door\" wordt uitgegegaan van km<sup>2</sup>, dus om bijv. ha te krijgen moet er worden gedeeld door 100. Om een eigen eenheid te gebruiken dient u zowel \"Eenheid\" and \"Delen door\" in te vullen. U kunt uw eigen gedefinieerde eenheid ook achter de standaard m<sup>2</sup>/km<sup>2</sup> tonen door 'Eigen eenheid toevoegen' op true te zetten."
     },
     {
         className: "viewer.components.tools.FullExtent",
@@ -656,12 +660,51 @@
         showHelp: true
     },
     {
+        className: "viewer.components.Split",
+        name: "Splitsen",
+        shortName: "Sp",
+        group: "Component",
+        sources: ["Split.js"],
+        configSource: ["ConfigObject.js","SelectionWindowConfig.js","Split-config.js"],
+        restrictions: ["left_menu"],
+        notInCombinationWith: ["viewer.mapcomponents.FlamingoMap"],
+        type: "popup",
+        singleton: true,
+        showHelp: true
+    },
+    {
+        className: "viewer.components.Merge",
+        name: "Samenvoegen",
+        shortName: "Sa",
+        group: "Component",
+        sources: ["Merge.js"],
+        configSource: ["ConfigObject.js","SelectionWindowConfig.js","Merge-config.js"],
+        restrictions: ["left_menu"],
+        notInCombinationWith: ["viewer.mapcomponents.FlamingoMap"],
+        type: "popup",
+        singleton: true,
+        showHelp: true
+    },
+    {
         className: "viewer.components.Drawing",
         name: "Tekenen",
         group: "Component",
         shortName: "Te",
         sources: ["../common/ColorField.js","Drawing.js"],
         configSource: ["ConfigObject.js","SelectionWindowConfig.js","Drawing-config.js"],
+        restrictions: ["left_menu"],
+        type: "popup",
+        singleton: true,
+        showHelp: true
+    },
+    {
+        className: "viewer.components.Snapping",
+        name: "Snapping",
+        shortName: "Sn",
+        group: "Component",
+        notInCombinationWith: ["viewer.mapcomponents.FlamingoMap"],
+        sources: ["Snapping.js"],
+        configSource: ["ConfigObject.js","SelectionWindowConfig.js","Snapping-config.js"],
         restrictions: ["left_menu"],
         type: "popup",
         singleton: true,
@@ -899,7 +942,7 @@
         singleton: true,
         sources: ["../../extjs/packages/sencha-charts/sencha-charts.js", "Graph.js", "GraphLayerIds.js"],
         configSource: ["ConfigObject.js","SelectionWindowConfig.js","Graph-config.js", "GraphLayerIds.js"],
-        restrictions: ["left_menu"],        
+        restrictions: ["left_menu"],
         type: "popup",
         showHelp: true
     },

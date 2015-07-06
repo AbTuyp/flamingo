@@ -20,6 +20,7 @@ import nl.b3p.viewer.config.ClobElement;
 import java.util.*;
 import javax.persistence.*;
 import javax.servlet.http.HttpServletRequest;
+import net.sourceforge.stripes.action.ActionBeanContext;
 import nl.b3p.viewer.config.security.Authorizations;
 import nl.b3p.viewer.config.security.User;
 import nl.b3p.viewer.config.services.BoundingBox;
@@ -120,7 +121,10 @@ public class Application {
      */
     @Transient
     Map originalToCopy;
-    
+
+    @OneToMany(orphanRemoval=true, cascade=CascadeType.ALL, mappedBy="application")
+    private List<Bookmark> bookmarks = new ArrayList<Bookmark>();
+
     // <editor-fold defaultstate="collapsed" desc="getters and setters">
     public Long getId() {
         return id;
@@ -216,6 +220,14 @@ public class Application {
 
     public void setAuthorizationsModified(Date authorizationsModified) {
         this.authorizationsModified = authorizationsModified;
+    }
+
+    public List<Bookmark> getBookmarks() {
+        return bookmarks;
+    }
+
+    public void setBookmarks(List<Bookmark> bookmarks) {
+        this.bookmarks = bookmarks;
     }
     //</editor-fold>
     
@@ -470,6 +482,7 @@ public class Application {
         
         Application copy = (Application) BeanUtils.cloneBean(this);   
         copy.setId(null);
+        copy.setBookmarks(null);
         
         // user reference is not deep copied, of course
         
@@ -493,6 +506,68 @@ public class Application {
         
         return copy;
     }
+
+    /**
+     * When a workversion of an application is published, sometimes (determined by the user) the mashups should "follow" the
+     * published version: the mashup should always point to the published version. When this occurs, the mashup should update
+     * the layerIds in the components (because otherwise the layerIds point to the previous published version).
+     * In this method an Map is created in the same way as deepCopy creates. This Map is used for converting the layerIds in the
+     * component configuration.
+     * @param old The Application to which the layerIds should be matched.
+     */
+    public void transferMashup (Application old){
+        originalToCopy = new HashMap();
+        loadTreeCache();
+        visitLevelForMashuptransfer(old.getRoot(), originalToCopy);
+        processCopyMap();
+        // Loop alle levels af van de oude applicatie
+            // Per level alle children
+            // Per level,
+                //zoek voor elke appLayer (uit oude applicatie) de bijbehorende NIEUWE applayer
+                    // sla in originalToCopy de ids op van de appLayer
+                //zoek voor elke level (uit oude applicatie) de bijbehorende NIEUWE level
+                    // sla in originalToCopy de ids op van de level
+        // Roep postPersist aan.
+    }
+
+    private void visitLevelForMashuptransfer(Level oldLevel, Map originalToCopy){
+        Level newLevel = findLevel(oldLevel);
+        if(newLevel != null){
+            originalToCopy.put(oldLevel, newLevel);
+        }
+
+        for (ApplicationLayer oldLayer : oldLevel.getLayers()) {
+            ApplicationLayer newLayer = findLayer(oldLayer);
+            if(newLayer != null){
+                originalToCopy.put(oldLayer, newLayer);
+            }
+        }
+
+
+        for (Level oldChild : oldLevel.getChildren()) {
+            visitLevelForMashuptransfer(oldChild, originalToCopy);
+        }
+    }
+
+    private ApplicationLayer findLayer(ApplicationLayer oldLayer){
+        List<ApplicationLayer> appLayers = treeCache.applicationLayers;
+        for (ApplicationLayer appLayer : appLayers) {
+            if(appLayer.getService().equals(oldLayer.getService()) && appLayer.getLayerName().equals(oldLayer.getLayerName())){
+                return appLayer;
+            }
+        }
+        return null;
+    }
+
+    private Level findLevel(Level oldLevel){
+        List<Level> levels = treeCache.levels;
+        for (Level level : levels) {
+            if(level.getName().equals(oldLevel.getName())){
+                return level;
+            }
+        }
+        return null;
+    }
     
     @PostPersist
     public void postPersist() {
@@ -500,28 +575,21 @@ public class Application {
             log.debug("postPersist(): mashup");
             return;
         }
+        processCopyMap();
+    }
+
+    @Transient
+    public Map<String,Long> idMap;
+
+    private void processCopyMap(){
         if(originalToCopy == null) {
             log.debug("postPersist(): not a copy");
             return;
         }
-        Map<String,Long> idMap = new HashMap();
-        for(Object e: originalToCopy.entrySet()) {
-            Map.Entry<Object,Object> entry = (Map.Entry<Object,Object>)e;
-            Object original = entry.getKey();
-            Object copy = entry.getValue();
-            log.debug(String.format("postPersist(): original=%s, copy=%s", original, copy));
-            if(original instanceof Level) {
-                Level oL = (Level)original;
-                Level cL = (Level)copy;
-                idMap.put(original.getClass() + "_" + oL.getId(), cL.getId());
-            } else if(original instanceof ApplicationLayer) {
-                ApplicationLayer oAl = (ApplicationLayer)original;
-                ApplicationLayer cAl = (ApplicationLayer)copy;
-                idMap.put(original.getClass() + "_" + oAl.getId(), cAl.getId());
-            }
-        }
+        idMap = getIdMap();
+
         originalToCopy = null;
-        
+
         log.debug("Updating component configs");
         for(ConfiguredComponent comp: components) {
             if(comp.getConfig() == null) {
@@ -559,13 +627,12 @@ public class Application {
                         changed = true;
                     }
                 }
-                
                 if(changed) {
                     log.debug("Old config: " + comp.getConfig());
                     comp.setConfig(cfg.toString());
                     log.debug("New config: " + comp.getConfig());
                 }
-                
+
             } catch(Exception ex) {
                 log.error(String.format("Cannot update persistent object id's "
                         + "in component config on application copy, "
@@ -575,6 +642,116 @@ public class Application {
                         comp.getName()), ex);
             }
         }
+    }
+
+    private Map<String,Long> getIdMap(){
+        Map<String,Long> idMap = new HashMap();
+        for (Object e : originalToCopy.entrySet()) {
+            Map.Entry<Object, Object> entry = (Map.Entry<Object, Object>) e;
+            Object original = entry.getKey();
+            Object copy = entry.getValue();
+            log.debug(String.format("postPersist(): original=%s, copy=%s", original, copy));
+            if (original instanceof Level) {
+                Level oL = (Level) original;
+                Level cL = (Level) copy;
+                idMap.put(original.getClass() + "_" + oL.getId(), cL.getId());
+            } else if (original instanceof ApplicationLayer) {
+                ApplicationLayer oAl = (ApplicationLayer) original;
+                ApplicationLayer cAl = (ApplicationLayer) copy;
+                idMap.put(original.getClass() + "_" + oAl.getId(), cAl.getId());
+            }
+        }
+        return idMap;
+    }
+
+    public void processBookmarks(Application previousApplication, ActionBeanContext context){
+        // bookmark krijgt een appId kolom
+            // bij maken werkversie
+                // check of bookmarkcomponent de configuratie: followsApplication
+                // zo ja
+                        //haal alle bookmarks voor vorige applicatie op
+                            // maak clone
+                                // Zet referentie naar vorige bookmark
+                                // vervang layer ids
+                                // vervang level ids
+                                // vervang ids in selectedcontent
+                                // set id van nieuwe applicatie in bookmark
+                                // set id van oude applicatie als referentie in bookmark
+                                // persist bookmark
+                // zo nee, doe niks
+            // Bij ophalen bookmark
+                // Gebruik ook applicatienaam en versienummer om bookmark op te halen
+
+                
+        EntityManager em = Stripersist.getEntityManager();
+        List<ConfiguredComponent> bookmarkComponents = em.createQuery("FROM ConfiguredComponent where application.id = :app and className = :className", ConfiguredComponent.class)
+                .setParameter("app", previousApplication.getId()).setParameter("className", "viewer.components.Bookmark").getResultList();
+
+        for (ConfiguredComponent comp : bookmarkComponents) {
+            String config = comp.getConfig();
+            if (config != null && !config.isEmpty()) {
+                try {
+                    JSONObject conf = new JSONObject(config);
+                    if(conf.optBoolean("copyBookmarkForWorkversion", false)){
+                        List<Bookmark> bookmarks = em.createQuery("FROM Bookmark where application = :app", Bookmark.class).setParameter("app", previousApplication).getResultList();
+                        for (Bookmark bookmark : bookmarks) {
+                            Bookmark clone = bookmark.clone();
+                            clone.setCreatedBy(clone.createCreatedBy(context));
+                            clone.setApplication(this);
+                            processBookmark(clone,idMap);
+                            em.persist(clone);
+                            clone.setCode(bookmark.getCode());
+                            em.persist(clone);
+                        }
+                    }
+                } catch (JSONException ex) {
+                    log.error("Cannot convert bookmarks.", ex);
+                }
+            }
+        }
+        previousApplication = null;
+    }
+
+    private void processBookmark(Bookmark bookmark,Map<String,Long> idMap) throws JSONException{
+        JSONObject bm = new JSONObject(bookmark.getParams());
+        JSONArray params = bm.getJSONArray("params");
+        JSONArray newParams = new JSONArray();
+        for (int i = 0; i < params.length(); i++) {
+            JSONObject param = params.getJSONObject(i);
+            JSONArray value = param.optJSONArray("value");
+            if(param.getString("name").equals("layers")){
+                JSONArray newLayers = new JSONArray();
+                for (int j = 0; j < value.length(); j++) {
+                    Integer layerId = value.getInt(j);
+                    Long newId = idMap.get(ApplicationLayer.class + "_" + layerId);
+                    newLayers.put(newId);
+                }
+                param.put("value", newLayers);
+            }else if(param.getString("name").equals("levelOrder")){
+                JSONArray newLevels = new JSONArray();
+                for (int j = 0; j < value.length(); j++) {
+                    Integer levelId = value.getInt(j);
+                    Long newId = idMap.get(Level.class + "_" + levelId);
+                    newLevels.put(newId);
+                }
+                param.put("value",newLevels);
+            }else if(param.getString("name").equals("selectedContent")){
+                for (int j = 0; j < value.length(); j++) {
+                    JSONObject content = value.getJSONObject(j);
+                    if(content.optString("type", "level").equals("level")){
+                        Long newId = idMap.get(Level.class + "_" + content.getString("id"));
+                        content.put("id", newId);
+                    }
+                }
+            }
+            newParams.put(param);
+        }
+        JSONObject newBm = new JSONObject();
+        newBm.put("params", newParams);
+        bookmark.setParams(newBm.toString());
+        //layers
+        //levelorder
+        //selectedcontent
     }
 
     public void removeOldProperties() {

@@ -23,18 +23,22 @@ Ext.define ("viewer.components.AttributeList",{
     extend: "viewer.components.Component",
     grids: null,
     pagers: null,
+    attributeIndex: 0,
     downloadForm:null,
     config: {
         layers:null,
         title:null,
         iconUrl:null,
         tooltip:null,
-        label: ""
+        label: "",
+        defaultDownload: "SHP",
+        autoDownload: false
     },    
     appLayer: null,
     featureService: null,
     layerSelector:null,
     topContainer: null,
+    schema: null,
     constructor: function (conf){        
         var minwidth = 600;
         if(conf.details.width < minwidth || !Ext.isDefined(conf.details.width)) conf.details.width = minwidth;
@@ -52,7 +56,8 @@ Ext.define ("viewer.components.AttributeList",{
             icon: me.config.iconUrl,
             tooltip: me.config.tooltip,
             label: me.config.label
-        }); 
+        });
+        this.schema = new Ext.data.schema.Schema();
         this.config.viewerController.addListener(viewer.viewercontroller.controller.Event.ON_FILTER_ACTIVATED,this.filterChanged,this);
         return this;
     },
@@ -89,7 +94,8 @@ Ext.define ("viewer.components.AttributeList",{
             layers: this.config.layers
         };
         this.layerSelector = Ext.create("viewer.components.LayerSelector",config);
-        this.layerSelector.addListener(viewer.viewercontroller.controller.Event.ON_LAYERSELECTOR_CHANGE,this.layerChanged,this);  
+        this.layerSelector.addListener(viewer.viewercontroller.controller.Event.ON_LAYERSELECTOR_CHANGE, this.layerChanged, this);
+        this.layerSelector.addListener(viewer.viewercontroller.controller.Event.ON_LAYERSELECTOR_INITLAYERS, this.selectFirstLayer, this);
         
         this.topContainer=Ext.create('Ext.container.Container', {
             id: this.name + 'Container',
@@ -122,32 +128,34 @@ Ext.define ("viewer.components.AttributeList",{
                 id: this.name + 'mainPagerPanel',
                 xtype: "container",
                 width: '100%',
-                height: 30
+                height: 43
             },{
                 id: this.name + 'ClosingPanel',
                 xtype: "container",
                 width: '100%',
-                height: MobileManager.isMobile() ? 45 : 25,
+                height: MobileManager.isMobile() ? 45 : 32,
                 style: {
-                    marginTop: '10px'
+                    marginTop: '10px',
+                    marginRight: '10px'
                 },
                 layout: {
                     type:'hbox',
                     pack:'end'
                 },
                 items: [
-                     {xtype: 'button', id:"downloadButton",text: 'Download',disabled:true, componentCls: 'mobileLarge', scope:this, handler:function(){
+                     {xtype: 'button', style: { marginRight: '5px' }, id:"downloadButton",text: 'Download',disabled:true, componentCls: 'mobileLarge', scope:this, handler:function(){
                              this.download();
                      }},
                     {
                         xtype: "combobox",
                         disabled:true,
                         id:"downloadType",
-                        value: 'SHP',
+                        value: this.config.defaultDownload,
                         queryMode: 'local',
                         displayField: 'label',
                         name:"test",
                         valueField: 'type',
+                        style: { marginRight: '5px' },
                         store:  Ext.create('Ext.data.Store', {
                                 fields: ['type','label'], data : [{type:"CSV", label:"csv" },{type:"XLS", label:"Excel" },{type:"SHP", label:"Shape" }] 
                             })
@@ -167,25 +175,28 @@ Ext.define ("viewer.components.AttributeList",{
             items: [{
                     xtype: "hidden",
                     name: "filter",
-                    id: 'filter'
+                    itemId: 'filter'
                 },
                 {
                     xtype: "hidden",
                     name: "appLayer",
-                    id: 'appLayer'
+                    itemId: 'appLayer'
                 },
                 {
                     xtype: "hidden",
                     name: "application",
-                    id: "application"
+                    itemId: "application"
                 },
                 {
                     xtype: "hidden",
                     name: "type",
-                    id: "type"
+                    itemId: "type"
                 }
             ]
         });
+    },
+    selectFirstLayer: function() {
+        this.layerSelector.selectFirstLayer();
     },
     showWindow : function (){
         if (this.topContainer==null){
@@ -240,6 +251,9 @@ Ext.define ("viewer.components.AttributeList",{
     // Called when the layerSelector was changed. 
     layerChanged : function (appLayer){
         this.loadAttributes(appLayer);
+        if(this.layerSelector.getVisibleLayerCount() === 1 && this.config.autoDownload) {
+            this.download();
+        }
     },
     filterChanged : function (filter,appLayer){
         if (this.layerSelector!=null){
@@ -278,22 +292,36 @@ Ext.define ("viewer.components.AttributeList",{
             for (var i=0; i < rawData.related_featuretypes.length; i++){
                 var ft = rawData.related_featuretypes[i];
                 var newEl =document.createElement("div");
-                var gridId=""+record.index+"_"+ft.id;
+                var gridId = "" + (this.attributeIndex++) + "_" + ft.id;
                 childGridIds.push(gridId);
                 newEl.id=this.name +gridId+ 'Container';
                 newEl.style.margin="5px";
                 expandRow.children[0].children[0].appendChild(newEl);
                 this.createGrid(gridId,newEl, this.appLayer, ft.id,ft.filter,false);
             }
-            store.addListener("load",function(){
-                for (var i=0; i < childGridIds.length; i ++){
-                    this.deleteGridWithId(childGridIds[i]);
-                }
-            },this)
+            store.addListener("sort", function() {
+                // Added setTimeout because panels need to be destroyed after sort
+                // event is completed, otherwise Ext tries to access panel dom while
+                // it has been destroyed already
+                setTimeout((function() {
+                    for (var i=0; i < childGridIds.length; i ++){
+                        this.deleteGridWithId(childGridIds[i]);
+                    }
+                }).bind(this), 0);
+            }, this);
         }
         
     },
     onCollapseBody: function (rowNode,record,expandRow,eOpts){        
+    },
+    
+    hideAllExpandedRows: function() {
+        for(var gridId in this.grids) {
+            if(!this.grids.hasOwnProperty(gridId) || gridId === "main") {
+                continue;
+            }
+            this.grids[gridId].setStyle('display', 'none');
+        }
     },
             
     deleteGridWithId: function (gridId){
@@ -310,6 +338,9 @@ Ext.define ("viewer.components.AttributeList",{
         }
         if (Ext.get(name + 'PagerPanel')){
             Ext.get(name + 'PagerPanel').destroy();
+        }
+        if (Ext.get(name + 'Container')){
+            Ext.get(name + 'Container').destroy();
         }
     },
     /**
@@ -337,7 +368,7 @@ Ext.define ("viewer.components.AttributeList",{
                     id: name +'PagerPanel',
                     xtype: "container",
                     width: '100%',
-                    height: 30,
+                    height: 38,
                     renderTo: renderToEl.id
                 });
             }
@@ -360,7 +391,6 @@ Ext.define ("viewer.components.AttributeList",{
                     type : 'string'
                 });
                 columns.push({
-                    id: "c"+name+ +attIndex,
                     header:colName,
                     dataIndex: "c" + attIndex,
                     flex: 1,
@@ -370,11 +400,14 @@ Ext.define ("viewer.components.AttributeList",{
                 });
             }
         }
-        var modelName= name + 'Model';
-        Ext.define(modelName, {
-            extend: 'Ext.data.Model',
-            fields: attributeList
-        });
+        var modelName = name + appLayer.id + 'Model';
+        if (!this.schema.hasEntity(modelName)) {
+            Ext.define(modelName, {
+                extend: 'Ext.data.Model',
+                fields: attributeList,
+                schema: this.schema
+            });
+        }
         var filter = "";
         if(relateFilter){
             filter = "&filter="+encodeURIComponent(relateFilter);
@@ -403,7 +436,7 @@ Ext.define ("viewer.components.AttributeList",{
                 listeners: {
                     exception: function(store, response, op) {
                         
-                        msg = response.responseText;
+                        var msg = response.responseText;
                         if(response.status == 200) {
                             try {
                                 var j = Ext.JSON.decode(response.responseText);
@@ -431,6 +464,20 @@ Ext.define ("viewer.components.AttributeList",{
                     }
                 }
             },
+            listeners: {
+                beforesort: {
+                    scope: this,
+                    fn: function(store, sort) {
+                        if(!sort) {
+                            return;
+                        }
+                        // If we are sorting and we are the mainStore, hide all other stores
+                        if(store.getStoreId() === this.name + "mainStore") {
+                            this.hideAllExpandedRows();
+                        }
+                    }
+                }
+            },
             autoLoad: true
         });
         var plugins = [];
@@ -449,6 +496,7 @@ Ext.define ("viewer.components.AttributeList",{
             plugins: plugins,
             viewConfig:{        
                 trackOver: false,
+                enableMouseOverOverrideFix: true, // custom configuration option used in override below
                 listeners: {
                     expandbody : {
                         scope: me,
@@ -474,7 +522,7 @@ Ext.define ("viewer.components.AttributeList",{
                 displayInfo: true,
                 displayMsg: 'Feature {0} - {1} van {2}',
                 emptyMsg: "Geen features om weer te geven",
-                height: 30
+                height: 38
             });
             Ext.getCmp(name + 'PagerPanel').add(p);
             this.pagers[gridId]=p;
@@ -486,13 +534,41 @@ Ext.define ("viewer.components.AttributeList",{
         if(appLayer.filter){
             filter=appLayer.filter.getCQL();
         }
-        Ext.getCmp('appLayer').setValue(appLayer.id);
-        Ext.getCmp('application').setValue(appId);
-        Ext.getCmp('filter').setValue(filter);
-        Ext.getCmp('type').setValue(Ext.getCmp("downloadType").getValue());
+        this.downloadForm.getComponent('appLayer').setValue(appLayer.id);
+        this.downloadForm.getComponent('application').setValue(appId);
+        this.downloadForm.getComponent('filter').setValue(filter);
+        this.downloadForm.getComponent('type').setValue(Ext.getCmp("downloadType").getValue());
         this.downloadForm.submit({            
             target: '_blank'
         });
     }
 });
 
+/**
+ * Nested Grids give problems when on hovering
+ * Context is parent when hovering child. See http://blog.kondratev.pro/2014/08/getting-rid-of-annoying-uncaught.html
+ */
+Ext.define('viewer.overrides.view.Table', {
+    override: 'Ext.view.Table',
+    checkThatContextIsParentGridView: function(e) {
+        var target = Ext.get(e.target);
+        var parentGridView = target.up('.x-grid-view');
+        if (this.el !== parentGridView) {
+            /* event of different grid caused by grids nesting */
+            return false;
+        } else {
+            return true;
+        }
+    },
+    processItemEvent: function(record, row, rowIndex, e) {
+        // Extra check if we really want to apply this fix (only in case of AttributeList nested grids)
+        // The 'enableMouseOverOverrideFix' is a custom configuration option added only to AttributeList
+        // grids above. Fixes issue https://github.com/flamingo-geocms/flamingo/issues/350
+        var fixEnabled = this.config && this.config.enableMouseOverOverrideFix;
+        if (fixEnabled && e.target && !this.checkThatContextIsParentGridView(e)) {
+            return false;
+        } else {
+            return this.callParent([record, row, rowIndex, e]);
+        }
+    }
+});
