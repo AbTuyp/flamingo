@@ -1355,7 +1355,7 @@ Ext.define("viewer.viewercontroller.ViewerController", {
      * Get the attributes of the appLayer
      */
     getAttributesFromAppLayer: function (appLayer, featureTypeId, addJoinedAttributes){
-        if (appLayer.attributes == undefined){
+        if (appLayer.attributes !== undefined){
             return appLayer.attributes;
         }
         //if no featureTypeId given, get the one of the application layer.
@@ -1644,6 +1644,14 @@ Ext.define("viewer.viewercontroller.ViewerController", {
             return layoutObject.layout;
         }
         return null;
+    },
+    
+    /**
+     * Gets the ID of the map container
+     * @returns string
+     */
+    getMapId: function() {
+        return this.layoutManager.getMapId();
     },
     
     /**
