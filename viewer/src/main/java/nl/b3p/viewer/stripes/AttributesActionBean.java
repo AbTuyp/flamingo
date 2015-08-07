@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2013 B3Partners B.V.
+ * Copyright (C) 2012-2015 B3Partners B.V.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@ import net.sourceforge.stripes.validation.Validate;
 import nl.b3p.geotools.filter.visitor.RemoveDistanceUnit;
 import nl.b3p.viewer.config.app.Application;
 import nl.b3p.viewer.config.app.ApplicationLayer;
-import nl.b3p.viewer.config.app.ConfiguredAttribute;
 import nl.b3p.viewer.config.security.Authorizations;
 import nl.b3p.viewer.config.services.*;
 import nl.b3p.viewer.util.ChangeMatchCase;
@@ -94,17 +93,35 @@ public class AttributesActionBean implements ActionBean {
 
     private boolean unauthorized;
 
+    /**
+     * This is retrieved from the layer and is false on a layer that would be
+     * editable for the user except that the user has been added to the prevent
+     * geometry editing group.
+     *
+     * @see nl.b3p.viewer.config.services.Layer#getPreventGeomEditors()
+     * @see
+     * nl.b3p.viewer.config.security.Authorizations#isLayerGeomWriteAuthorized(nl.b3p.viewer.config.services.Layer,
+     * javax.servlet.http.HttpServletRequest)
+     * 
+     */
+    private boolean userAllowedToEditGeom = true;
+
     @Validate
     private List<String> attributesToInclude = new ArrayList();
 
+    /**
+     * To force returning geometry set this to true in the request.
+     */
     @Validate
     private boolean graph = false;
 
     //<editor-fold defaultstate="collapsed" desc="getters en setters">
+    @Override
     public ActionBeanContext getContext() {
         return context;
     }
 
+    @Override
     public void setContext(ActionBeanContext context) {
         this.context = context;
     }
@@ -242,7 +259,8 @@ public class AttributesActionBean implements ActionBean {
                 || !Authorizations.isAppLayerReadAuthorized(application, appLayer, context.getRequest())) {
             unauthorized = true;
         }
-    }
+        userAllowedToEditGeom = Authorizations.isLayerGeomWriteAuthorized(layer, context.getRequest());
+     }
 
     public Resolution attributes() throws JSONException {
         JSONObject json = new JSONObject();
@@ -257,6 +275,15 @@ public class AttributesActionBean implements ActionBean {
         } else {
 
             appLayer.addAttributesJSON(json, true);
+            if (!userAllowedToEditGeom) {
+                // set editable to false on geometry attribute when editing of the
+                //  geometry has been disabled on the layer
+                JSONArray attr = json.getJSONArray("attributes");
+                if (json.has("geometryAttributeIndex")) {
+                    JSONObject geomAttr = attr.getJSONObject(json.getInt("geometryAttributeIndex"));
+                    geomAttr.put("editable", false);
+                }
+            }
             json.put("success", Boolean.TRUE);
         }
 
@@ -428,6 +455,7 @@ public class AttributesActionBean implements ActionBean {
                 });
 
                 if(total == -1) {
+                    json.put("virtualtotal", true);
                     total = FeatureToJson.MAX_FEATURES;
                 }
 

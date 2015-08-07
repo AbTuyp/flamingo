@@ -9,7 +9,7 @@
     <parent>
         <groupId>org.flamingo-mc</groupId>
         <artifactId>flamingo-mc</artifactId>
-        <version>4.5.2-SNAPSHOT</version>
+        <version>4.5.4-SNAPSHOT</version>
     </parent>
     <name>viewer</name>
 
@@ -34,6 +34,12 @@
         <dependency>
             <groupId>com.vividsolutions</groupId>
             <artifactId>jts</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>xerces</groupId>
+                    <artifactId>xercesImpl</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.geotools</groupId>
@@ -148,6 +154,17 @@
         <dependency>
             <groupId>org.eclipse.emf</groupId>
             <artifactId>org.eclipse.emf.common</artifactId>
+        </dependency>
+
+	<dependency>
+	    <groupId>jaxen</groupId>
+	    <artifactId>jaxen</artifactId>
+	    <version>1.1.6</version>
+	</dependency>
+        <dependency>
+            <groupId>xerces</groupId>
+            <artifactId>xercesImpl</artifactId>
+            <version>2.7.1</version>
         </dependency>
     </dependencies>
 
@@ -304,6 +321,7 @@
                                 <param>${viewerhtml.path}/common/viewercontroller/controller/Tool.js</param>
                                 <param>${viewerhtml.path}/common/viewercontroller/controller/Component.js</param>
                                 <param>${viewerhtml.path}/common/viewercontroller/controller/ToolMapClick.js</param>
+                                <param>${viewerhtml.path}/common/viewercontroller/controller/SnappingController.js</param>
                             </sourceFiles>
                             <outputFile>${minify.outputdir}/viewer-min.js</outputFile>
                         </compilation>
@@ -358,6 +376,7 @@
                                 <param>${viewerhtml.path}/common/viewercontroller/openlayers/ToolMapClick.js</param>
                                 <param>${viewerhtml.path}/common/viewercontroller/openlayers/OpenLayersComponent.js</param>
                                 <param>${viewerhtml.path}/common/viewercontroller/openlayers/OpenLayersMapComponent.js</param>
+                                <param>${viewerhtml.path}/common/viewercontroller/openlayers/OpenLayersSnappingController.js</param>
                                 <!-- OpenLayers Components -->
                                 <param>${viewerhtml.path}/common/viewercontroller/openlayers/components/LoadingPanel.js</param>
                                 <param>${viewerhtml.path}/common/viewercontroller/openlayers/components/OpenLayersBorderNavigation.js</param>

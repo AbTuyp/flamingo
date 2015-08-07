@@ -562,24 +562,6 @@
         showHelp: true
 
     },
-    /*{
-        className: "viewer.components.BufferLayer",
-        name: "BufferLayer",
-        shortName: "BL",
-        sources: ["BufferLayer.js"],
-        configSource: ["ConfigObject.js","SelectionWindowConfig.js","BufferLayer-config.js"],
-        restrictions: ["left_menu"],
-        type: "popup"
-    },
-    {
-        className: "viewer.components.BufferObject",
-        name: "BufferObject",
-        shortName: "BO",
-        sources: ["BufferObject.js"],
-        configSource: ["ConfigObject.js","SelectionWindowConfig.js","BufferObject-config.js"],
-        restrictions: ["left_menu"],
-        type: "popup"
-    },*/
     {
         className: "viewer.components.Buffer",
         name: "Buffer",
@@ -660,12 +642,51 @@
         showHelp: true
     },
     {
+        className: "viewer.components.Split",
+        name: "Splitsen",
+        shortName: "Sp",
+        group: "Component",
+        sources: ["Split.js"],
+        configSource: ["ConfigObject.js","SelectionWindowConfig.js","Split-config.js"],
+        restrictions: ["left_menu"],
+        notInCombinationWith: ["viewer.mapcomponents.FlamingoMap"],
+        type: "popup",
+        singleton: true,
+        showHelp: true
+    },
+    {
+        className: "viewer.components.Merge",
+        name: "Samenvoegen",
+        shortName: "Sa",
+        group: "Component",
+        sources: ["Merge.js"],
+        configSource: ["ConfigObject.js","SelectionWindowConfig.js","Merge-config.js"],
+        restrictions: ["left_menu"],
+        notInCombinationWith: ["viewer.mapcomponents.FlamingoMap"],
+        type: "popup",
+        singleton: true,
+        showHelp: true
+    },
+    {
         className: "viewer.components.Drawing",
         name: "Tekenen",
         group: "Component",
         shortName: "Te",
         sources: ["../common/ColorField.js","Drawing.js"],
         configSource: ["ConfigObject.js","SelectionWindowConfig.js","Drawing-config.js"],
+        restrictions: ["left_menu"],
+        type: "popup",
+        singleton: true,
+        showHelp: true
+    },
+    {
+        className: "viewer.components.Snapping",
+        name: "Snapping",
+        shortName: "Sn",
+        group: "Component",
+        notInCombinationWith: ["viewer.mapcomponents.FlamingoMap"],
+        sources: ["Snapping.js"],
+        configSource: ["ConfigObject.js","SelectionWindowConfig.js","Snapping-config.js"],
         restrictions: ["left_menu"],
         type: "popup",
         singleton: true,
@@ -903,7 +924,7 @@
         singleton: true,
         sources: ["../../extjs/packages/sencha-charts/sencha-charts.js", "Graph.js", "GraphLayerIds.js"],
         configSource: ["ConfigObject.js","SelectionWindowConfig.js","Graph-config.js", "GraphLayerIds.js"],
-        restrictions: ["left_menu"],        
+        restrictions: ["left_menu"],
         type: "popup",
         showHelp: true
     },

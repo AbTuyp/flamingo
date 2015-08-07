@@ -208,6 +208,10 @@ Ext.define ("viewer.components.TOC",{
         // Create background
         this.createBackgroundLevel(nodes);
         this.insertLayer(nodes);
+        
+        // Large tree's where not rendered properly all the time. This fixes this issue
+        // See https://github.com/flamingo-geocms/flamingo/issues/391
+        this.panel.getView().refreshView();
 
         var map = this.config.viewerController.mapComponent.getMap();
         var scale = map.getResolution();
@@ -635,7 +639,9 @@ Ext.define ("viewer.components.TOC",{
         var layer = object.layer;
         var vis = object.visible;
         var nodeId = "layer-" + layer.appLayerId;
-        var node = this.panel.getRootNode().findChild("nodeId",nodeId,true);
+        var node = this.panel.getRootNode().findChildBy(function(node){
+            return (node.data.layerObj.nodeId === nodeId);
+        }, this, true);
         if (node){
             if (this.config.layersChecked || (node.hasChildNodes() && this.config.groupCheck)){
                  node.set('checked', vis);

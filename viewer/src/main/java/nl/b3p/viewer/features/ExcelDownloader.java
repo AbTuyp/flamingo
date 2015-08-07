@@ -20,9 +20,13 @@ package nl.b3p.viewer.features;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import nl.b3p.viewer.config.app.ConfiguredAttribute;
 import nl.b3p.viewer.config.services.AttributeDescriptor;
 import org.apache.poi.ss.usermodel.Cell;
@@ -55,8 +59,8 @@ public class ExcelDownloader extends FeatureDownloader{
     private int currentRow = -1;
     private Map<String, CellStyle> styles;
 
-    public ExcelDownloader(List<ConfiguredAttribute> attributes, SimpleFeatureSource fs, Map<String, AttributeDescriptor> featureTypeAttributes, Map<String, String> attributeAliases) {
-        super(attributes, fs, featureTypeAttributes,attributeAliases);
+    public ExcelDownloader(List<ConfiguredAttribute> attributes, SimpleFeatureSource fs, Map<String, AttributeDescriptor> featureTypeAttributes, Map<String, String> attributeAliases, String params) {
+        super(attributes, fs, featureTypeAttributes,attributeAliases, params);
     }
 
     @Override
@@ -114,6 +118,14 @@ public class ExcelDownloader extends FeatureDownloader{
     @Override
     public void processFeature(SimpleFeature oldFeature) {
         Row row = sheet.createRow(currentRow);
+
+        String rowHeight = parameterMap.get("rowHeight");
+        if(rowHeight != null) {
+            try {
+                row.setHeight(Short.parseShort(rowHeight));
+            } catch(NumberFormatException nfe) {
+            }
+        }
         Cell cell;
 
         int colNum = 0;
@@ -136,6 +148,38 @@ public class ExcelDownloader extends FeatureDownloader{
 
     @Override
     public File write() throws IOException {
+
+        int i = 0;
+        String autoSize = parameterMap.get("autoSize");
+        String rowWidths = parameterMap.get("rowWidths");
+        if(autoSize != null || rowWidths != null) {
+            Set autoSizeAttributes = autoSize == null ? Collections.emptySet() : new HashSet(Arrays.asList(autoSize.split("\\|")));
+            Map<String,Integer> attributeWidths = new HashMap();
+            if(rowWidths != null) {
+                for(String w: rowWidths.split("\\|")) {
+                    String[] p = w.split("@", 2);
+                    if(p.length == 2) {
+                        try {
+                            attributeWidths.put(p[0], Integer.parseInt(p[1]));
+                        } catch(NumberFormatException e) {
+                        }
+                    }
+                }
+            }
+
+            for (ConfiguredAttribute configuredAttribute : attributes) {
+                if(configuredAttribute.isVisible()) {
+                    if(autoSizeAttributes.contains(configuredAttribute.getAttributeName())) {
+                        sheet.autoSizeColumn(i);
+                    }
+                    if(attributeWidths.containsKey(configuredAttribute.getAttributeName())) {
+                        sheet.setColumnWidth(i, attributeWidths.get(configuredAttribute.getAttributeName()));
+                    }
+                    i++;
+                }
+            }
+        }
+
          // Write the output to a file
         File file = File.createTempFile("downloadExcel", ".xlsx");
         FileOutputStream out = new FileOutputStream(file);
@@ -163,6 +207,7 @@ public class ExcelDownloader extends FeatureDownloader{
 
         style = createBorderedStyle(wb);
         style.setAlignment(CellStyle.ALIGN_LEFT);
+        style.setVerticalAlignment(CellStyle.VERTICAL_TOP);
         style.setWrapText(true);
         styles.put("cell_normal", style);
 

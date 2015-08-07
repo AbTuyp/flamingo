@@ -42,9 +42,9 @@ Ext.define('select.TreeNode', {
             if(nodeType === "service") return contextPath + '/viewer-html/components/resources/images/selectionModule/serviceok.png';    
         }},
         // leaf mapped to isLeaf
-        {name: 'leaf', type: 'boolean', mapping: 'isLeaf'}
+        {name: 'leaf', type: 'boolean', mapping: 'isLeaf'},
+        {name: 'index', type: 'int'}
         // {name: 'checkedlayers', type: 'array'},
-        
     ]
 });
 
@@ -305,7 +305,7 @@ Ext.define ("viewer.components.SelectionModule",{
             me.handleSourceChange(availableOptions[0].id, availableOptions[0].checked);
         } else {
             // iterate over radio buttons on top to activate the checked item
-            var selectionModuleFormField = Ext.getCmp('selectionModuleFormFieldContainer');
+            var selectionModuleFormField = Ext.getCmp(this.name + 'selectionModuleFormFieldContainer');
             if(selectionModuleFormField) {
                 selectionModuleFormField.items.each(function(item){
                     if(item.checked) me.handleSourceChange(item.id, item.checked);
@@ -353,7 +353,7 @@ Ext.define ("viewer.components.SelectionModule",{
 
     loadCustomService: function() {
         var me = this;
-        Ext.getCmp("selectionModuleTreeContentContainer").setLoading("Zoeken...");
+        me.popup.popupWin.setLoading("Zoeken...");
 
         var protocol = '', url = '', q = '';
         if(me.customServiceType == 'csw') {
@@ -392,11 +392,11 @@ Ext.define ("viewer.components.SelectionModule",{
                             }
                         }
                         me.insertTreeNode(levelsToShow, rootNode);
-                        Ext.getCmp("selectionModuleTreeContentContainer").setLoading(false);
+                        me.popup.popupWin.setLoading(false);
                     },
                     function(msg) {
                         Ext.MessageBox.alert("Foutmelding", msg);
-                        Ext.getCmp("selectionModuleTreeContentContainer").setLoading(false);
+                        me.popup.popupWin.setLoading(false);
                     }
                 );
             }else{
@@ -404,11 +404,11 @@ Ext.define ("viewer.components.SelectionModule",{
                 csw.loadInfo(
                     function(results) {
                         me.populateCSWTree(results);
-                        Ext.getCmp("selectionModuleTreeContentContainer").setLoading(false);
+                        me.popup.popupWin.setLoading(false);
                     },
                     function(msg) {
                         Ext.MessageBox.alert("Foutmelding", msg);
-                        Ext.getCmp("selectionModuleTreeContentContainer").setLoading(false);
+                        me.popup.popupWin.setLoading(false);
                     }
                 );
             }
@@ -423,11 +423,11 @@ Ext.define ("viewer.components.SelectionModule",{
             si.loadInfo(
                 function(info) {
                     me.populateCustomServiceTree(info);
-                    Ext.getCmp("selectionModuleTreeContentContainer").setLoading(false);
+                    me.popup.popupWin.setLoading(false);
                 },
                 function(msg) {
                     Ext.MessageBox.alert("Foutmelding", msg);
-                    Ext.getCmp("selectionModuleTreeContentContainer").setLoading(false);
+                    me.popup.popupWin.setLoading(false);
                 }
             );
         }
@@ -486,7 +486,7 @@ Ext.define ("viewer.components.SelectionModule",{
             flex: 1,
             // width: '100%',
             // html: '<div id="treeSelectionContainer" style="width: 100%; height: 100%;"></div>',
-            id: 'selectionModuleTreeContentContainer',
+            id: this.name + 'selectionModuleTreeContentContainer',
             layout: 'fit'
         },
         {
@@ -508,7 +508,7 @@ Ext.define ("viewer.components.SelectionModule",{
             // height: 35,
             padding: 5,
             border: 0,
-            id: 'selectionModuleSaveFormContainer'
+            id: this.name + 'selectionModuleSaveFormContainer'
         }];
         // when there is one tree configured show radio buttons and form buttons above
         if(me.hasLeftTrees())
@@ -536,7 +536,7 @@ Ext.define ("viewer.components.SelectionModule",{
                         height: 0,
                         padding: 5,
                         border: 0,
-                        id: 'selectionModuleCustomFormContainer',
+                        id: this.name + 'selectionModuleCustomFormContainer',
                         layout: 'auto',
                         items: [
                             {
@@ -603,7 +603,7 @@ Ext.define ("viewer.components.SelectionModule",{
                     xtype: 'form',
                     items: [{
                         xtype: 'fieldcontainer',
-                        id: 'selectionModuleFormFieldContainer',
+                        id: this.name + 'selectionModuleFormFieldContainer',
                         layout: 'hbox',
                         border: 0,
                         defaults: {
@@ -618,14 +618,14 @@ Ext.define ("viewer.components.SelectionModule",{
                     height: radioControls.length === 0 ? 0 : MobileManager.isMobile() ? 40 : 30,
                     padding: '0 5px 5px 5px',
                     border: 0,
-                    id: 'selectionModuleFormContainer',
+                    id: this.name + 'selectionModuleFormContainer',
                     layout: 'fit'
             });
         }
 
         // Create main container
         Ext.create('Ext.container.Container', {
-            id: 'selectionModuleMainContainer',
+            id: this.name + 'selectionModuleMainContainer',
             width: '100%',
             height: '100%',
             layout: {
@@ -654,10 +654,10 @@ Ext.define ("viewer.components.SelectionModule",{
                     iconTop: me.moveUpIcon,
                     iconBottom: me.moveDownIcon,
                     handlerTop: function() {
-                        me.moveNode('up');
+                        me.moveNodes('up');
                     },
                     handlerBottom: function() {
-                        me.moveNode('down');
+                        me.moveNodes('down');
                     }
                 })
             ];
@@ -676,10 +676,10 @@ Ext.define ("viewer.components.SelectionModule",{
                     iconTop: me.moveRightIcon,
                     iconBottom: me.moveLeftIcon,
                     handlerTop: function() {
-                        me.addSelectedLayers();
+                        me.addNodes(me.activeTree.getSelectionModel().getSelection());
                     },
                     handlerBottom: function() {
-                        me.removeSelectedNodes();
+                        me.removeNodes(me.treePanels.selectionTree.treePanel.getSelectionModel().getSelection());
                     }
                 })
             );
@@ -691,10 +691,10 @@ Ext.define ("viewer.components.SelectionModule",{
             },
             width: '100%',
             height: '100%',
-            id: 'selectionModuleTreesContainer',
+            id: this.name + 'selectionModuleTreesContainer',
             items: items
         });
-        Ext.getCmp('selectionModuleTreeContentContainer').add(treeContainer);
+        Ext.getCmp(this.name + 'selectionModuleTreeContentContainer').add(treeContainer);
     },
 
     createMoveButtons: function(config) {
@@ -747,17 +747,21 @@ Ext.define ("viewer.components.SelectionModule",{
             height: "100%",
             scroll: "both",
             animate: false,
+            selModel: {
+                mode: 'MULTI'
+            },
             listeners: {
                 itemdblclick: function(view, record, item, index, event, eOpts) {
-                    me.addNode(record);
+                    me.addNodes([ record ]);
                 }
             }
         };
 
         if(me.config.selectGroups) {
             me.treePanels.applicationTree.treeStore = Ext.create('Ext.data.TreeStore', Ext.apply({}, defaultStoreConfig));
-            var applicationTreeConfig = Ext.apply(defaultTreeConfig, {
+            var applicationTreeConfig = Ext.apply({}, defaultTreeConfig, {
                 treePanelType: 'applicationTree',
+                viewConfig: me.getViewConfig('collection'),
                 store: me.treePanels.applicationTree.treeStore,
                 renderTo: 'applicationTreeContainer'
             });
@@ -796,8 +800,9 @@ Ext.define ("viewer.components.SelectionModule",{
             });
 
             me.treePanels.registryTree.treeStore = serviceStore;
-            var registryTreeConfig = Ext.apply(defaultTreeConfig, {
+            var registryTreeConfig = Ext.apply({}, defaultTreeConfig, {
                 treePanelType: 'registryTree',
+                viewConfig: me.getViewConfig('collection'),
                 store: me.treePanels.registryTree.treeStore,
                 renderTo: 'registryTreeContainer'
             });
@@ -824,8 +829,9 @@ Ext.define ("viewer.components.SelectionModule",{
 
         if(me.config.selectOwnServices || me.config.selectCsw) {
             me.treePanels.customServiceTree.treeStore = Ext.create('Ext.data.TreeStore', Ext.apply({}, defaultStoreConfig));
-            var customServiceConfig = Ext.apply(defaultTreeConfig, {
+            var customServiceConfig = Ext.apply({}, defaultTreeConfig, {
                 treePanelType: 'customServiceTree',
+                viewConfig: me.getViewConfig('collection'),
                 store: me.treePanels.customServiceTree.treeStore,
                 renderTo: 'customTreeContainer'
             });
@@ -854,17 +860,87 @@ Ext.define ("viewer.components.SelectionModule",{
         }
 
         me.treePanels.selectionTree.treeStore = Ext.create('Ext.data.TreeStore', Ext.apply({}, defaultStoreConfig));
-        me.treePanels.selectionTree.treePanel = Ext.create('Ext.tree.Panel', Ext.apply(defaultTreeConfig, {
+        me.treePanels.selectionTree.treePanel = Ext.create('Ext.tree.Panel', Ext.apply({}, defaultTreeConfig, {
             treePanelType: 'selectionTree',
             store: me.treePanels.selectionTree.treeStore,
+            viewConfig: me.getViewConfig('selection'),
             listeners: {
                 itemdblclick: function(view, record, item, index, event, eOpts) {
-                    me.removeSelectedNodes();
+                    me.removeNodes([ record ]);
                 }
             },
             tbar: null
         }));
         Ext.getCmp('selectionTreeContainer').add(me.treePanels.selectionTree.treePanel);
+    },
+    
+    getViewConfig: function(treeType) {
+        var me = this;
+        return {
+            plugins: {
+                ptype: 'treeviewdragdrop',
+                appendOnly: true,
+                allowContainerDrops: true,
+                allowParentInserts: true,
+                sortOnDrop: true,
+                dropZone: {
+                    // We always allow dragging over node
+                    onNodeOver: function(node, dragZone, e, data) {
+                        // If we find 1 allowed record we allow the drop (invalid ones will be filtered out)
+                        if(me.nodesAddAllowed(data.records)) {
+                            return Ext.dd.DropZone.prototype.dropAllowed;
+                        }
+                        return Ext.dd.DropZone.prototype.dropNotAllowed;
+                    },
+                    onContainerOver: function(dd, e, data) {
+                        // If we find 1 allowed record we allow the drop (invalid ones will be filtered out)
+                        if(me.nodesAddAllowed(data.records)) {
+                            return Ext.dd.DropZone.prototype.dropAllowed;
+                        }
+                        return Ext.dd.DropZone.prototype.dropNotAllowed;
+                    },
+                    // On nodeDrop is executed when node is dropped on other node in tree
+                    onNodeDrop: function(targetNode, dragZone, e, data) {
+                        // We are in the selection tree && target and dragged node are both in same tree
+                        if(treeType === 'selection' && targetNode.offsetParent === data.item.offsetParent) {
+                            // Check where the element is dropped
+                            var bounds = targetNode.getBoundingClientRect();
+                            var dropY = e.getY();
+                            // If dropped at the top 50% of the element, append above
+                            // else append below
+                            var halfWay = bounds.top + (bounds.height / 2);
+                            me.moveNodesToPosition(data, dropY >= halfWay);
+                            return true;
+                        }
+                        me.handleDrag(treeType, data);
+                        return true;
+                    }
+                }
+            },
+            listeners: {
+                // beforedrop is executed when node is dropped on container (so not on another node but on 'empty' space'
+                beforedrop: function(node, data, overModel, dropPosition, dropHandlers, eOpts) {
+                    // We cancel the drop (do not append the actual layers because we still need some validation)
+                    dropHandlers.cancelDrop();
+                    // Add/remove layers
+                    me.handleDrag(treeType, data);
+                }
+            }  
+        };
+    },
+    
+    /**
+     * Add/Remove layers after drag
+     */
+    handleDrag: function(treeType, data) {
+        if(treeType === 'collection') {
+            // Manually remove all layers which we dragged to other tree
+            this.removeNodes(data.records);
+        }
+        if(treeType === 'selection') {
+            // Manually move all layers which we dragged to other tree
+            this.addNodes(data.records);
+        }
     },
 
     filterRemote: function(tree, textvalue) {
@@ -1103,13 +1179,16 @@ Ext.define ("viewer.components.SelectionModule",{
     },
 
     insertTreeNode: function(node, root, autoExpand) {
+        var returnNode = null;
         if(Ext.isArray(node)) {
+            returnNode = [];
             for(var i = 0; i < node.length; i++) {
-                this.appendNode(node[i], root, autoExpand);
+                returnNode.push(this.appendNode(node[i], root, autoExpand));
             }
         } else {
-            this.appendNode(node, root, autoExpand);
+            returnNode = this.appendNode(node, root, autoExpand);
         }
+        return returnNode;
     },
             
     appendNode: function(node, root, autoExpand) {
@@ -1197,8 +1276,8 @@ Ext.define ("viewer.components.SelectionModule",{
     },
 
     setTopHeight: function(height) {
-        Ext.getCmp('selectionModuleCustomFormContainer').setHeight(height);
-        Ext.getCmp('selectionModuleTreesContainer').updateLayout();
+        Ext.getCmp(this.name + 'selectionModuleCustomFormContainer').setHeight(height);
+        Ext.getCmp(this.name + 'selectionModuleTreesContainer').updateLayout();
     },
 
     populateCustomServiceTree: function(userService, node, autoExpand) {
@@ -1233,11 +1312,17 @@ Ext.define ("viewer.components.SelectionModule",{
         // First remove all current children
         this.clearTree(rootNode);
         // Create service node
-        for(var i in results) {
-            if(!results.hasOwnProperty(i)) {
-                continue;
-            }
-            me.addCSWResult(results[i], rootNode);
+        var cswResults = [];
+        if( Object.prototype.toString.call( results ) === '[object Array]' ) {
+            cswResults = results;
+        } else if(results.hasOwnProperty('success') && results.hasOwnProperty('results') && results.success) {
+            cswResults = results.results;
+        }
+        if(cswResults.length === 0) {
+            return;
+        }
+        for(var i in cswResults) {
+            me.addCSWResult(cswResults[i], rootNode);
         }
     },
 
@@ -1308,179 +1393,242 @@ Ext.define ("viewer.components.SelectionModule",{
         }
         return treeNode;
     },
-
-    moveNode: function(direction) {
+    
+    moveNodes: function(direction) {
         var me = this;
         var rootNode = me.treePanels.selectionTree.treePanel.getRootNode();
-        Ext.Array.each(me.treePanels.selectionTree.treePanel.getSelectionModel().getSelection(), function(record) {
-            var node = rootNode.findChild('id', record.get('id'), true);
-            var sib = null;
-            if(direction == 'down') {
-                sib = node.nextSibling;
-                if(sib !== null) {
-                    rootNode.insertBefore(sib, node);
-                    me.switchContent(node, sib);
-                }
-            } else {
-                sib = node.previousSibling;
-                if(sib !== null) {
-                    rootNode.insertBefore(node, sib);
-                    me.switchContent(node, sib);
-                }
+        var selection = me.treePanels.selectionTree.treePanel.getSelectionModel().getSelection();
+        var allNodes = rootNode.childNodes;
+        var doSort = true;
+        // First check if we are going to sort (we do not sort when the first item is selected and direction = up
+        // or we do not sort when last item is selected and direction = down
+        for(var i = 0; i < selection.length; i++) {
+            var index = this.findIndex(allNodes, selection[i]);
+            if((index === 0 && direction === 'up') || (index === (allNodes.length - 1) && direction === 'down')) {
+                doSort = false;
             }
-        });
-    },
-
-    switchContent: function(node1, node2) {
-        var me = this;
-        var contentNode1 = null;
-        var contentNode1Index = 0;
-        var contentNode2 = null;
-        var contentNode2Index = 0;
-        var origDataNode1 = me.getOrigData(node1);
-        var nodeType1 = me.getNodeType(node1);
-        var origDataNode2 = me.getOrigData(node2);
-        var nodeType2 = me.getNodeType(node2);
-        nodeType1 = (nodeType1 == "maplevel") ? "level" : nodeType1;
-        nodeType2 = (nodeType2 == "maplevel") ? "level" : nodeType2;
-        Ext.Array.each(me.selectedContent, function(content, index) {
-            if(content.id == origDataNode1.id && content.type == nodeType1) {
-                contentNode1 = content;
-                contentNode1Index = index;
-            }
-            if(content.id == origDataNode2.id && content.type == nodeType2) {
-                contentNode2 = content;
-                contentNode2Index = index;
-            }
-        });
-        if(contentNode1 !== null && contentNode2 !== null) {
-            me.selectedContent[contentNode1Index] = contentNode2;
-            me.selectedContent[contentNode2Index] = contentNode1;
         }
+        // If no sorting, return
+        if(!doSort) {
+            return;
+        }
+        // Sort selection by index
+        selection.sort((function sortOnIndex(a, b) {
+            var indexA = this.findIndex(allNodes, a);
+            var indexB = this.findIndex(allNodes, b);
+            return indexA - indexB;
+        }).bind(this));
+        // We manually sort because this is much faster than moving the nodes directly in the tree
+        if(direction === 'down') {
+            // Moving down we iterate back
+            for(var i = (selection.length - 1); i >= 0; i--) {
+                var index = this.findIndex(allNodes, selection[i]);
+                this.moveNodeInArray(allNodes, index+1, index);
+            }
+        } else {
+            // Moving up we iterate forward
+            for(var i = 0; i < selection.length; i++) {
+                var index = this.findIndex(allNodes, selection[i]);
+                this.moveNodeInArray(allNodes, index-1, index);
+            }
+        }
+        this.sortNodes(allNodes);
+        this.reorderSelectedContent(allNodes);
+    },
+    
+    moveNodesToPosition: function(data, below) {
+        var rootNode = this.treePanels.selectionTree.treePanel.getRootNode();
+        var allNodes = rootNode.childNodes;
+        // Get the targetIndex
+        var targetIndex = this.findIndex(allNodes, data.event.position.record);
+        if(below) {
+            targetIndex++;
+        }
+        // Sort records by index
+        data.records.sort((function sortOnIndex(a, b) {
+            var indexA = this.findIndex(allNodes, a);
+            var indexB = this.findIndex(allNodes, b);
+            if(below) {
+                return indexA - indexB;
+            }
+            return indexA - indexB;
+        }).bind(this));
+        for(var i = 0; i < data.records.length; i++) {
+            var current = this.findIndex(allNodes, data.records[i]);
+            this.moveNodeInArray(allNodes, (current < targetIndex ? targetIndex - 1 : targetIndex), current);
+            targetIndex++;
+        }
+        this.sortNodes(allNodes);
+        this.reorderSelectedContent(allNodes);
+    },
+    
+    sortNodes: function(allNodes) {
+        // Set indexes
+        for(var i = 0; i < allNodes.length; i++) {
+            allNodes[i].set('index', i);
+        }
+        // Sort indexes
+        this.treePanels.selectionTree.treeStore.sort('index', 'ASC');
+    },
+    
+    findIndex: function(allNodes, node) {
+        for(var i = 0; i < allNodes.length; i++) {
+            if(allNodes[i].get('nodeid') === node.get('nodeid')) {
+                return i;
+            }
+        }
+        return -1;
+    },
+    
+    moveNodeInArray: function(list, to, from) {
+        list.splice(to, 0, list.splice(from, 1)[0]);
     },
 
-    addSelectedLayers: function() {
+    reorderSelectedContent: function(allNodes) {
         var me = this;
-        Ext.Array.each(me.activeTree.getSelectionModel().getSelection(), function(record) {
-            me.addNode(record);
+        function findIndex(allNodes, node) {
+            for(var i = 0; i < allNodes.length; i++) {
+                if(allNodes[i].get('nodeid').replace(/[^0-9]/ig, '') === node.id) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+        me.selectedContent.sort(function sortOnIndex(a, b) {
+            var indexA = findIndex(allNodes, a);
+            var indexB = findIndex(allNodes, b);
+            return indexA - indexB;
         });
     },
 
-    addNode: function(record) {
+    addNodes: function(selection) {
         var me = this;
-        me.addToSelection(record);
+        Ext.Array.each(selection, function(record) {
+            me.addToSelection(record);
+        });
     },
     
-    isFirstChecked: function() {
-        return this.firstChecked;
+    nodesAddAllowed: function(records) {
+        // If we find 1 allowed record we allow adding (invalid ones will be filtered later)
+        for(var i = 0; i < records.length; i++) {
+            if(this.nodeAddAllowed(records[i])) {
+                return true;
+            }
+        }
+        return false;
     },
     
-    autoCheck: function() {
-        return !this.config.hasOwnProperty('autoOnLayers') || this.config.autoOnLayers === 'always';
+    nodeAddAllowed: function(record) {
+        var nodeType = this.getNodeType(record);
+        if(nodeType === "appLayer" || nodeType === "layer" || (nodeType === "maplevel" && (!this.nodeSelected(record, nodeType)))) {
+            return true;
+        }
+        return false;
     },
 
     addToSelection: function(record) {
         var me = this;
         var nodeType = me.getNodeType(record);
-        if(nodeType == "appLayer" || nodeType == "layer" || (nodeType == "maplevel" && (!me.onRootLevel(record, me.activeTree)))) {
-            var rootNode = me.treePanels.selectionTree.treePanel.getRootNode();
-            var recordOrigData = me.getOrigData(record);
-            var recordid = record.get('id');
-            if(nodeType == "layer") {
-                recordid = 'rl' + recordid;
+        if(!this.nodeAddAllowed(record)) {
+            return;
+        }
+        var rootNode = me.treePanels.selectionTree.treePanel.getRootNode();
+        var recordOrigData = me.getOrigData(record);
+        var recordid = record.get('id');
+        if(nodeType == "layer") {
+            recordid = 'rl' + recordid;
+        }
+        var searchNode = rootNode.findChild('id', recordid, false);
+        if(searchNode !== null || rootNode === null) {
+            return;
+        }
+        var objData = record.data;
+        if(nodeType == "appLayer") {
+            // Own service
+            var customService = Ext.clone(me.userServices[recordOrigData.userService]);
+            customService.status = 'new';
+            me.addService(customService);
+            me.addedLayers.push({
+                background: false,
+                checked: this.autoCheck(),
+                id: recordOrigData.id,
+                layerName: recordOrigData.layerName,
+                alias: recordOrigData.alias,
+                serviceId: customService.id,
+                status: 'new'
+            });
+            me.selectedContent.push({
+                id: recordOrigData.id,
+                type: 'appLayer'
+            });
+        }
+        else if(nodeType == "maplevel") {
+            // Added from application
+            me.addedLevels.push({id:recordOrigData.id,status:'new'});
+            me.selectedContent.push({
+                id: recordOrigData.id,
+                type: 'level'
+            });
+            var level = this.levels[recordOrigData.id];
+            if(level && !level.background && this.autoCheck()) {
+                this.checkAllChildren(level, true);
             }
-            var searchNode = rootNode.findChild('id', recordid, false);
-            if(searchNode == null) {
-                var objData = record.data;
-                if(rootNode != null) {
-                    if(nodeType == "appLayer") {
-                        // Own service
-                        var customService = Ext.clone(me.userServices[recordOrigData.userService]);
-                        customService.status = 'new';
-                        me.addService(customService);
-                        me.addedLayers.push({
-                            background: false,
-                            checked: !me.isFirstChecked() && me.autoCheck(),
-                            id: recordOrigData.id,
-                            layerName: recordOrigData.layerName,
-                            alias: recordOrigData.alias,
-                            serviceId: customService.id,
-                            status: 'new'
-                        });
-                        me.selectedContent.push({
-                            id: recordOrigData.id,
-                            type: 'appLayer'
-                        });
-                        me.firstChecked = true;
-                    }
-                    else if(nodeType == "maplevel") {
-                        // Added from application
-                        me.addedLevels.push({id:recordOrigData.id,status:'new'});
-                        me.selectedContent.push({
-                            id: recordOrigData.id,
-                            type: 'level'
-                        });
-                        if(!me.isFirstChecked()) {
-                            me.checkAllChildren(recordOrigData.id);
-                        }
-                    }
-                    else if(nodeType == "layer") {
-                        // Added from registry
-                        var service = me.findService(record);
-                        objData = null;
-                        if(service != null) {
-                            service.status = 'new';
-                            me.addService(service);
-                            me.addedLayers.push({
-                                background: false,
-                                checked: !me.isFirstChecked() && me.autoCheck(),
-                                id: recordid,
-                                layerName: record.data.layerName,
-                                alias: record.data.layerName,
-                                serviceId: service.id,
-                                status: 'new'
-                            });
-                            me.selectedContent.push({
-                                id: recordid,
-                                type: 'appLayer'
-                            });
-                            objData = me.createNode(recordid, record.get('name'), service.id, true);
-                            objData.type = 'appLayer';
-                            objData.origData.userService = service.id;
-                            me.firstChecked = true;
-                        }
-                    }
-                    if(objData !== null) {
-                        rootNode.appendChild(objData);
-                    }
-                }
+        }
+        else if(nodeType == "layer") {
+            // Added from registry
+            var service = me.findService(record);
+            objData = null;
+            if(service != null) {
+                service.status = 'new';
+                me.addService(service);
+                me.addedLayers.push({
+                    background: false,
+                    checked: this.autoCheck(),
+                    id: recordid,
+                    layerName: record.data.layerName,
+                    alias: record.data.layerName,
+                    serviceId: service.id,
+                    status: 'new'
+                });
+                me.selectedContent.push({
+                    id: recordid,
+                    type: 'appLayer'
+                });
+                objData = me.createNode(recordid, record.get('name'), service.id, true);
+                objData.type = 'appLayer';
+                objData.origData.userService = service.id;
             }
+        }
+        if(objData !== null) {
+            rootNode.appendChild(objData);
         }
     },
     
-    checkAllChildren: function(levelId) {
-        var level = this.levels[levelId];
-        if(!level || this.config.autoOnLayers === 'never' || (this.config.autoOnLayers === 'onlybackground' && !level.background)) {
-            return;
+    autoCheck: function(type) {
+        if(!type) {
+            type = 'always';
         }
-        this.firstChecked = true;
+        return !this.config.hasOwnProperty('autoOnLayers') || this.config.autoOnLayers === type;
+    },
+    
+    checkAllChildren: function(level, checked) {
         if(level.layers) {
             for(var i = 0; i < level.layers.length; i++) {
-                this.checkLayer(level.layers[i]);
+                this.checkLayer(level.layers[i], checked);
             }
         }
         if(level.children) {
             for(var j = 0; j < level.children.length; j++) {
-                this.checkAllChildren(level.children[j]);
+                this.checkAllChildren(level.children[j], checked);
             }
         }
     },
     
-    checkLayer: function(layerId) {
+    checkLayer: function(layerId, checked) {
         if(!this.appLayers[layerId]) {
             return;
         }
-        this.appLayers[layerId].checked = true;
+        this.appLayers[layerId].checked = checked;
     },
 
     findService: function(record) {
@@ -1519,10 +1667,10 @@ Ext.define ("viewer.components.SelectionModule",{
         }
     },
 
-    removeSelectedNodes: function() {
+    removeNodes: function(records) {
         var me = this;
         var rootNode = me.treePanels.selectionTree.treePanel.getRootNode();
-        Ext.Array.each(me.treePanels.selectionTree.treePanel.getSelectionModel().getSelection(), function(record) {
+        Ext.Array.each(records, function(record) {
             var nodeType = me.getNodeType(record);
             var recordOrigData = me.getOrigData(record);
             if(recordOrigData.service == null) {
@@ -1623,6 +1771,7 @@ Ext.define ("viewer.components.SelectionModule",{
 
     saveSelection: function() {
         var me = this;
+        var checkedFirstBackgroundLayer = null;
         Ext.Array.each(me.addedServices, function(addedService) {
             if(addedService.status == 'new') {
                 addedService.status = 'added';
@@ -1641,6 +1790,9 @@ Ext.define ("viewer.components.SelectionModule",{
         Ext.Array.each(me.addedLevels, function(addedLevel) {
             if(addedLevel.status == 'new') {
                 addedLevel.status = 'added';
+                if(me.levels[addedLevel.id] && me.levels[addedLevel.id].background && checkedFirstBackgroundLayer === null && me.autoCheck('onlybackground')) {
+                    checkedFirstBackgroundLayer = addedLevel.id;
+                }
             }
         });
         Ext.Array.each(me.addedLayers, function(addedLayer) {
@@ -1649,6 +1801,22 @@ Ext.define ("viewer.components.SelectionModule",{
                 me.config.viewerController.addAppLayer(addedLayer);
             }
         });
+        if(checkedFirstBackgroundLayer !== null) {
+            var item;
+            var checked;
+            var level;
+            for(var i = 0; i < me.selectedContent.length; i++) {
+                item = me.selectedContent[i];
+                if(item.type === "level"){
+                    level = this.levels[item.id];
+                    if(level && level.background){
+                        checked = parseInt(level.id, 10) === parseInt(checkedFirstBackgroundLayer, 10);
+                        level.checked = checked;
+                        this.checkAllChildren(level, checked);
+                    }
+                }
+            }
+        }
         me.config.viewerController.setSelectedContent(me.selectedContent);
         me.popup.hide();
     },
@@ -1663,22 +1831,26 @@ Ext.define ("viewer.components.SelectionModule",{
         return null;
     },
 
-    onRootLevel: function(record, tree) {
-        var foundNode = tree.getRootNode().findChild('id', record.get('id'), false);
-        if(foundNode !== null) return true;
-        return false;
+    nodeSelected: function(record, nodeType) {
+        var recordData = this.getOrigData(record);
+        var foundNodeIndex = this.treePanels.selectionTree.treeStore.findBy(function(treeRecord){
+            var treeNodeType = this.getNodeType(treeRecord);
+            var treeNodeData = this.getOrigData(treeRecord);
+            return (treeNodeType === nodeType && parseInt(treeNodeData.id, 10) === parseInt(recordData.id, 10));
+        }, this);
+        return foundNodeIndex !== -1;
     },
 
     getExtComponents: function() {
         var me = this;
         var extComponents = [];
-        extComponents.push('selectionModuleMainContainer');
-        extComponents.push('selectionModuleFormContainer');
-        extComponents.push('selectionModuleCustomFormContainer');
-        extComponents.push('selectionModuleTreeContentContainer');
-        extComponents.push('selectionModuleSaveFormContainer');
-        extComponents.push('selectionModuleTreesContainer');
-        extComponents.push('selectionModuleFormFieldContainer');
+        extComponents.push(this.name + 'selectionModuleMainContainer');
+        extComponents.push(this.name + 'selectionModuleFormContainer');
+        extComponents.push(this.name + 'selectionModuleCustomFormContainer');
+        extComponents.push(this.name + 'selectionModuleTreeContentContainer');
+        extComponents.push(this.name +'selectionModuleSaveFormContainer');
+        extComponents.push(this.name +'selectionModuleTreesContainer');
+        extComponents.push(this.name +'selectionModuleFormFieldContainer');
         return Ext.Array.merge(extComponents, me.getActiveTreePanelIds());
     }
 });
