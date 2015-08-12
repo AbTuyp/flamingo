@@ -92,6 +92,10 @@ public class DatabaseSynchronizer implements Servlet {
         updates.get("5").add("add_cyclorama_account.sql");
 
         updates.put("6", Collections.singletonList("alter_layer_children_child_unique.sql"));
+
+        updates.put("7", Collections.singletonList("add_application_to_bookmark.sql"));
+
+        updates.put("8", Collections.singletonList("add_layer_prevent_geom_editors.sql"));
     }
     /**
      * Function is called in init() of servlet.

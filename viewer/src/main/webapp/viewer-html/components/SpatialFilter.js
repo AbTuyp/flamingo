@@ -183,7 +183,7 @@ Ext.define ("viewer.components.SpatialFilter",{
     },
     
     // <editor-fold desc="Event handlers" defaultstate="collapsed">
-    layerChanged : function (appLayer,afterLoadAttributes,scope){
+    layerChanged: function (appLayer, previousAppLayer, scope) {
         var buttons = Ext.getCmp(this.config.name +"filterButtons");
         if(appLayer !== null){
             buttons.setDisabled(false);
@@ -430,8 +430,9 @@ Ext.define ("viewer.components.SpatialFilter",{
                 strokeopacity: 50
             }
         });
+        this.config.viewerController.registerSnappingLayer(this.vectorLayer);
         this.config.viewerController.mapComponent.getMap().addLayer(this.vectorLayer);
-        
+                
         this.vectorLayer.addListener (viewer.viewercontroller.controller.Event.ON_FEATURE_ADDED,this.featureAdded,this);
     },
     

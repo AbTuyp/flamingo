@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2012-2013 B3Partners B.V.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,7 +25,41 @@ Ext.define("viewer.components.CustomConfiguration",{
             configObject = {};
         }
         configObject.showLabelconfig =true;
-        viewer.components.CustomConfiguration.superclass.constructor.call(this, parentId,configObject);        
+        viewer.components.CustomConfiguration.superclass.constructor.call(this, parentId,configObject);
+
+        this.form.add({
+            xtype: 'combobox',
+            store: [[ "CSV", "csv" ], [ "XLS", "Excel" ], [ "SHP", "Shape" ]],
+            itemId: 'defaultDownload',
+            name: 'defaultDownload',
+            labelWidth: this.labelWidth,
+            fieldLabel: 'Standaard download methode',
+            value: this.configObject.defaultDownload || "SHP"
+        });
+
+        this.form.add({
+            xtype: 'checkbox',
+            fieldLabel: 'Automatisch downloaden',
+            inputValue: true,
+            name: 'autoDownload',
+            checked: this.configObject.autoDownload || false,
+            labelWidth: this.labelWidth
+        });
+
+        this.form.add({
+            xtype: 'textfield',
+            fieldLabel: 'Download formaat parameters',
+            name: 'downloadParams',
+            value: this.configObject.downloadParams,
+            labelWidth: this.labelWidth,
+            width: 700
+        });
+
+        this.form.add({
+            xtype: 'container',
+            html: 'Indien automatisch downloaden wordt ingeschakeld wordt er automatisch een download gestart bij het openen van de Attributenlijst indien slechts 1 laag beschikbaar is en de Standaard download methode is ingesteld.'
+        });
+
         this.createCheckBoxes(this.configObject.layers,{attribute:true});
     }
 });
